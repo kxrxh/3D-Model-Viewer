@@ -66,14 +66,14 @@ export default function ModelViewer() {
 
   const handlePartDoubleClick = useCallback((partName) => {
     const mesh = meshes[partName];
-    if (mesh) {
+    if (mesh && visibleParts[partName]) {
       if (selectedPart === mesh) {
         setSelectedPart(null);
       } else {
         setSelectedPart(mesh);
       }
     }
-  }, [meshes, selectedPart]);
+  }, [meshes, selectedPart, visibleParts]);
 
   const resetView = useCallback(() => {
     setSelectedPart(null);
