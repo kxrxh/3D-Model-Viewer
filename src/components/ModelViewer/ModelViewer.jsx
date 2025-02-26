@@ -87,7 +87,7 @@ export default function ModelViewer() {
             htmlFor="model-upload" 
             className="inline-block px-10 py-5 bg-red-700 text-white rounded-lg cursor-pointer hover:bg-red-800 transition-colors mb-2.5"
           >
-            Upload 3D Model (GLB/GLTF)
+            Загрузить 3D модель (GLB/GLTF)
           </label>
           <input
             id="model-upload"
@@ -97,7 +97,7 @@ export default function ModelViewer() {
             className="hidden"
           />
           <p className="text-gray-600 mt-2.5">
-            Supported formats: GLB, GLTF
+            Поддерживаемые форматы: GLB, GLTF
           </p>
         </div>
       )}
@@ -106,22 +106,20 @@ export default function ModelViewer() {
           {isLoading && <LoadingSpinner />}
           <button
             onClick={resetView}
-            className={`absolute top-2.5 left-2.5 px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 ${
+            className={`absolute top-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 whitespace-nowrap ${
               selectedPart ? 'block' : 'hidden'
             }`}
           >
-            Reset View
+            Сбросить вид
           </button>
           <button
             onClick={() => {
               URL.revokeObjectURL(modelUrl);
               setModelUrl(null);
             }}
-            className={`absolute top-2.5 ${
-              selectedPart ? 'left-[120px]' : 'left-2.5'
-            } px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10`}
+            className={`absolute bottom-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 whitespace-nowrap`}
           >
-            Load Different Model
+            Загрузить другую модель
           </button>
           <Canvas
             camera={{ 

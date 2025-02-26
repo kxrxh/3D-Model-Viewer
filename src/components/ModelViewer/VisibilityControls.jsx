@@ -104,13 +104,13 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
             onClick={() => onToggleAll(true)}
             className="px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white border-none rounded-lg cursor-pointer text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow"
           >
-            Show All
+            Показать все
           </button>
           <button
             onClick={() => onToggleAll(false)}
             className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white border-none rounded-lg cursor-pointer text-sm font-medium transition-colors duration-200 shadow-sm hover:shadow"
           >
-            Hide All
+            Скрыть все
           </button>
         </div>
       </div>
@@ -232,40 +232,42 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
 
       <div className="mt-5 p-4 bg-gray-50/50 rounded-xl border border-gray-200">
         <h4 className="mb-4 text-gray-700 text-sm font-semibold">
-          Ungrouped Parts
+          Несгруппированные части
         </h4>
-        {Object.keys(groupedParts).sort().map((displayName) => {
-          const paths = groupedParts[displayName];
-          const allVisible = paths.every(path => visibleParts[path]);
-          const anyVisible = paths.some(path => visibleParts[path]);
+        <div className="max-h-[300px] overflow-y-auto pr-2">
+          {Object.keys(groupedParts).sort().map((displayName) => {
+            const paths = groupedParts[displayName];
+            const allVisible = paths.every(path => visibleParts[path]);
+            const anyVisible = paths.some(path => visibleParts[path]);
 
-          return (
-            <div 
-              key={displayName} 
-              className="mb-1 flex items-center p-2 rounded-lg hover:bg-white transition-colors duration-150 cursor-grab active:cursor-grabbing"
-              draggable
-              onDragStart={(e) => handlePartDragStart(e, paths[0])}
-              onDoubleClick={() => onPartDoubleClick(paths[0])}
-            >
-              <input
-                type="checkbox"
-                checked={allVisible}
-                ref={input => {
-                  if (input) {
-                    input.indeterminate = anyVisible && !allVisible;
-                  }
-                }}
-                onChange={() => {
-                  paths.forEach(path => onToggle(path, !allVisible));
-                }}
-                className="mr-3 cursor-pointer accent-red-600"
-              />
-              <label className="flex-1 text-sm text-gray-600 cursor-pointer hover:text-gray-800 transition-colors duration-150">
-                {displayName}
-              </label>
-            </div>
-          );
-        })}
+            return (
+              <div 
+                key={displayName} 
+                className="mb-1 flex items-center p-2 rounded-lg hover:bg-white transition-colors duration-150 cursor-grab active:cursor-grabbing"
+                draggable
+                onDragStart={(e) => handlePartDragStart(e, paths[0])}
+                onDoubleClick={() => onPartDoubleClick(paths[0])}
+              >
+                <input
+                  type="checkbox"
+                  checked={allVisible}
+                  ref={input => {
+                    if (input) {
+                      input.indeterminate = anyVisible && !allVisible;
+                    }
+                  }}
+                  onChange={() => {
+                    paths.forEach(path => onToggle(path, !allVisible));
+                  }}
+                  className="mr-3 cursor-pointer accent-red-600"
+                />
+                <label className="flex-1 text-sm text-gray-600 cursor-pointer hover:text-gray-800 transition-colors duration-150">
+                  {displayName}
+                </label>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

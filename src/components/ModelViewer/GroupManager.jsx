@@ -41,7 +41,7 @@ const GroupManager = React.memo(({ groups, onAddGroup, onDeleteGroup, onEditGrou
           type="text"
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
-          placeholder="New group name"
+          placeholder="Название новой группы"
           className="flex-1 px-3 py-2 rounded-md border border-gray-300 text-sm outline-none transition-colors focus:border-blue-500"
         />
         <button
@@ -53,7 +53,7 @@ const GroupManager = React.memo(({ groups, onAddGroup, onDeleteGroup, onEditGrou
           }}
           className="px-4 py-2 bg-red-700 text-white rounded-md cursor-pointer text-sm font-medium hover:bg-red-800 transition-colors"
         >
-          Add Group
+          Новая группа
         </button>
       </div>
       <div className="flex gap-2">
@@ -61,13 +61,13 @@ const GroupManager = React.memo(({ groups, onAddGroup, onDeleteGroup, onEditGrou
           onClick={handleExport}
           className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md cursor-pointer text-sm font-medium hover:bg-gray-700 transition-colors"
         >
-          Export Groups
+          Экспорт групп
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
           className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md cursor-pointer text-sm font-medium hover:bg-gray-700 transition-colors"
         >
-          Import Groups
+          Импорт групп
         </button>
         <input
           ref={fileInputRef}
