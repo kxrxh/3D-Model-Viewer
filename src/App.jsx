@@ -4,9 +4,7 @@ function App() {
 
   return (
     <>
-      <div className="App">
-        <ModelViewer />
-      </div>
+      <ModelViewer />
     </>
   )
 }

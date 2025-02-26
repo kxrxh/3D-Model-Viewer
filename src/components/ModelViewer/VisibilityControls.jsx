@@ -98,7 +98,7 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
   return (
     <div className="absolute top-2.5 right-2.5 bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-xl max-h-[80vh] overflow-y-auto min-w-[320px] border border-gray-100">
       <div className="flex justify-between mb-5 gap-2.5 border-b border-gray-100 pb-4">
-        <h3 className="m-0 text-gray-800 text-lg font-semibold">Model Parts</h3>
+        <h3 className="m-0 text-gray-800 text-lg font-semibold">Части модели</h3>
         <div className="flex gap-2">
           <button
             onClick={() => onToggleAll(true)}

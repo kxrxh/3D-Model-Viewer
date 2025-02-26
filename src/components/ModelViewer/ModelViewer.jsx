@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import Model from './Model';
 import CameraController from './CameraController';
 import VisibilityControls from './VisibilityControls';
+import LoadingSpinner from './LoadingSpinner';
 
 // Enable Three.js caching
 THREE.Cache.enabled = true;
@@ -16,6 +17,7 @@ export default function ModelViewer() {
   const [meshes, setMeshes] = useState({});
   const [selectedPart, setSelectedPart] = useState(null);
   const [modelUrl, setModelUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const isInitialized = useRef(false);
 
   const handleFileUpload = useCallback((event) => {
@@ -23,6 +25,7 @@ export default function ModelViewer() {
     if (file) {
       const url = URL.createObjectURL(file);
       setModelUrl(url);
+      setIsLoading(true);
       isInitialized.current = false;
       setModelParts({});
       setVisibleParts({});
@@ -36,6 +39,7 @@ export default function ModelViewer() {
       setModelParts(parts);
       setVisibleParts(parts);
       isInitialized.current = true;
+      setIsLoading(false);
     }
   }, []);
 
@@ -99,6 +103,7 @@ export default function ModelViewer() {
       )}
       {modelUrl && (
         <>
+          {isLoading && <LoadingSpinner />}
           <button
             onClick={resetView}
             className={`absolute top-2.5 left-2.5 px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 ${
