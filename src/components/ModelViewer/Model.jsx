@@ -9,26 +9,22 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
 
   useEffect(() => {
     scene.traverse((child) => {
-      if (child.isMesh) {
-        child.frustumCulled = true;
-        
-        if (child.material) {
-          child.material.side = THREE.FrontSide;
-          child.material.depthWrite = true;
-          child.material.depthTest = true;
-          child.material.polygonOffset = true;
-          child.material.polygonOffsetFactor = 1;
-          child.material.polygonOffsetUnits = 1;
-          child.material.needsUpdate = true;
-        }
-
-        if (child.geometry) {
-          child.geometry.computeBoundingSphere();
-          child.geometry.computeBoundingBox();
-        }
-
-        child.renderOrder = 0;
+      if (child.isMesh && child.material) {
+        child.material.side = THREE.DoubleSide; // Render both front and back faces
+        child.material.depthWrite = true;
+        child.material.depthTest = true;
+        child.material.polygonOffset = true;
+        child.material.polygonOffsetFactor = 1;
+        child.material.polygonOffsetUnits = 1;
+        child.material.needsUpdate = true;
       }
+
+      if (child.geometry) {
+        child.geometry.computeBoundingSphere();
+        child.geometry.computeBoundingBox();
+      }
+
+      child.renderOrder = 0;
     });
   }, [scene]);
 
@@ -40,21 +36,75 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
         const path = [];
         let current = object;
         while (current && current !== scene) {
-          path.unshift(current.name || `unnamed_${current.type}`);
+          const name = current.name || `unnamed_${current.type}`;
+          // Skip adding mesh names to the path
+          if (!current.isMesh) {
+            path.unshift(name);
+          }
           current = current.parent;
         }
-        return path.join(' / ');
+        return path.join(' / ').trim() || `Part_${Object.keys(parts).length + 1}`;
       };
 
+      // Create a hierarchical structure for parts
+      const hierarchy = {};
       scene.traverse((child) => {
         if (child.isMesh) {
-          const fullPath = getFullPath(child);
-          const name = fullPath || `Part_${Object.keys(parts).length + 1}`;
-          child.name = name;
-          parts[name] = true;
-          meshRefs.current[name] = child;
+          const fullPath = getFullPath(child.parent);  // Use parent's path instead
+          if (fullPath) {
+            const pathParts = fullPath.split(' / ');
+            
+            // Create groups for each level of hierarchy
+            let currentPath = '';
+            let currentHierarchy = hierarchy;
+            
+            pathParts.forEach((part, index) => {
+              currentPath = currentPath ? `${currentPath} / ${part}` : part;
+              
+              if (!currentHierarchy[part]) {
+                currentHierarchy[part] = {
+                  group: new THREE.Group(),
+                  children: {},
+                  fullPath: currentPath
+                };
+                currentHierarchy[part].group.name = currentPath;
+              }
+              
+              // Add mesh to the current group
+              if (index === pathParts.length - 1) {
+                const clonedMesh = child.clone();
+                clonedMesh.visible = true;
+                currentHierarchy[part].group.add(clonedMesh);
+              }
+              
+              currentHierarchy = currentHierarchy[part].children;
+            });
+            
+            parts[fullPath] = true;
+          }
         }
       });
+
+      // Function to process the hierarchy and add groups to meshRefs
+      const processHierarchy = (hierarchyObj, parentPath = '') => {
+        Object.entries(hierarchyObj).forEach(([name, data]) => {
+          const fullPath = data.fullPath;
+          meshRefs.current[fullPath] = data.group;
+          
+          // Process children recursively
+          processHierarchy(data.children, fullPath);
+        });
+      };
+
+      processHierarchy(hierarchy);
+
+      // Also store individual meshes under their full paths if not part of a group
+      scene.traverse((child) => {
+        if (child.isMesh && !meshRefs.current[child.name]) {
+          meshRefs.current[child.name] = child;
+        }
+      });
+
       onLoad(parts);
       onPartFound(meshRefs.current);
       initialized.current = true;
@@ -63,9 +113,30 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
 
   useEffect(() => {
     if (visibleParts && Object.keys(visibleParts).length > 0) {
-      Object.entries(meshRefs.current).forEach(([name, mesh]) => {
-        if (visibleParts.hasOwnProperty(name)) {
-          mesh.visible = visibleParts[name];
+      Object.entries(meshRefs.current).forEach(([name, object]) => {
+        const shouldBeVisible = visibleParts[name];
+        
+        if (object.isMesh) {
+          object.visible = shouldBeVisible;
+        } else if (object.isGroup) {
+          object.traverse((child) => {
+            if (child.isMesh) {
+              child.visible = shouldBeVisible;
+            }
+          });
+        }
+      });
+    } else {
+      // If no visibility state is provided, make everything visible
+      Object.values(meshRefs.current).forEach((object) => {
+        if (object.isMesh) {
+          object.visible = true;
+        } else if (object.isGroup) {
+          object.traverse((child) => {
+            if (child.isMesh) {
+              child.visible = true;
+            }
+          });
         }
       });
     }
@@ -74,4 +145,4 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
   return <primitive object={scene} />;
 }
 
-export default Model; 
+export default Model;
