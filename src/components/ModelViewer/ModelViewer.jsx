@@ -1,7 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Stage, BakeShadows, AdaptiveDpr, AdaptiveEvents } from '@react-three/drei';
-import { Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 
 import Model from './Model';
@@ -50,12 +49,12 @@ export default function ModelViewer() {
     // Helper function to create nested structure from path
     const createNestedStructure = (path, object) => {
       const parts = path.split(' / ');
-      
+
       // Helper function to build the tree recursively
       const buildLevel = (nameParts, currentObject, depth = 0) => {
         const currentName = nameParts[depth];
         const isLastLevel = depth === nameParts.length - 1;
-        
+
         const node = {
           name: currentName,
           children: []
@@ -77,7 +76,7 @@ export default function ModelViewer() {
     Object.entries(meshRefs).forEach(([path, mesh]) => {
       if (!mesh.isMesh) {
         const structure = createNestedStructure(path, mesh);
-        
+
         // Helper function to merge nodes
         const mergeNodes = (source, targetArray) => {
           const existing = targetArray.find(node => node.name === source.name);
@@ -163,85 +162,6 @@ export default function ModelViewer() {
     URL.revokeObjectURL(url);
   }, [meshes, visibleParts]);
 
-  // Add glow effect to selected part (updated to handle the "Default" material)
-  useEffect(() => {
-    if (selectedPart) {
-      console.log('Selected part for glow:', selectedPart);
-      console.log('Selected part type:', {
-        isMesh: selectedPart.isMesh,
-        isGroup: selectedPart.isGroup,
-        isObject3D: selectedPart.isObject3D,
-      });
-      console.log('Selected part material:', selectedPart.material);
-      console.log('Selected part geometry:', selectedPart.geometry);
-
-      const originalMaterials = [];
-
-      const applyGlow = (object) => {
-        if (object.isMesh) {
-          let originalMaterial = object.material;
-
-          // Log the original material name for debugging
-          console.log(`Original material for ${object.name || 'Unnamed'}:`, originalMaterial?.name || 'No name');
-
-          // Handle missing or invalid materials (including "Default")
-          if (!originalMaterial || originalMaterial === null || originalMaterial === undefined) {
-            console.log(`Mesh ${object.name || 'Unnamed'} has no material, applying default`);
-            originalMaterial = new THREE.MeshStandardMaterial({ color: 0xF3F });
-            object.material = originalMaterial;
-          }
-
-          const glowMaterial = originalMaterial.clone();
-          // Ensure the material supports emissive properties
-          if (glowMaterial.isMeshStandardMaterial || glowMaterial.isMeshPhysicalMaterial) {
-            console.log(`Applying glow to standard/physical material for ${object.name || 'Unnamed'}`);
-            glowMaterial.emissive = new THREE.Color(0xF3F); // Bright white for maximum visibility
-            glowMaterial.emissiveIntensity = 10; // High intensity
-            glowMaterial.transparent = false; // Force opaque
-            glowMaterial.opacity = 1; // Ensure full opacity
-            // Disable any textures or maps that might interfere with emissive
-            glowMaterial.map = null;
-            glowMaterial.alphaMap = null;
-            glowMaterial.envMap = null;
-          } else if (glowMaterial.isMeshBasicMaterial) {
-            console.log(`Applying glow to basic material for ${object.name || 'Unnamed'}`);
-            glowMaterial.color = new THREE.Color(0xF3F); // Bright white
-            glowMaterial.emissive = new THREE.Color(0xF3F);
-            glowMaterial.emissiveIntensity = 10;
-            glowMaterial.transparent = false;
-            glowMaterial.opacity = 1;
-          } else {
-            console.log(`Fallback material for ${object.name || 'Unnamed'}: Converting to MeshStandardMaterial`);
-            // Fallback for other material types (e.g., "Default" or custom materials)
-            glowMaterial = new THREE.MeshStandardMaterial({
-              color: 0xF3F,
-              emissive: 0xF3F,
-              emissiveIntensity: 10,
-              transparent: false,
-              opacity: 1,
-            });
-          }
-
-          object.material = glowMaterial;
-          originalMaterials.push({ object, originalMaterial });
-        } else if (object.isGroup || object.isObject3D) {
-          object.children.forEach(child => applyGlow(child));
-        }
-      };
-
-      applyGlow(selectedPart);
-
-      return () => {
-        console.log('Cleaning up glow effect, restoring original materials');
-        originalMaterials.forEach(({ object, originalMaterial }) => {
-          object.material = originalMaterial;
-        });
-      };
-    } else {
-      console.log('No part selected for glow');
-    }
-  }, [selectedPart]);
-
   return (
     <div className="w-full h-screen relative bg-gradient-to-br from-white to-gray-100">
       {!modelUrl && (
@@ -295,16 +215,13 @@ export default function ModelViewer() {
             }}
             className="bg-transparent"
             gl={{
-              antialias: true,
               alpha: true,
               powerPreference: "high-performance",
               stencil: false,
               depth: true,
-              logarithmicDepthBuffer: true,
+              antialias: false,
               precision: "mediump"
             }}
-            performance={{ min: 0.1 }}
-            dpr={[1, 2]}
           >
             <color attach="background" args={['#A9A9A9']} />
             <Stage
@@ -318,12 +235,6 @@ export default function ModelViewer() {
                 onPartFound={handlePartFound}
               />
             </Stage>
-            <Bloom
-              luminanceThreshold={0.0} // Lower to capture all emissive light
-              luminanceSmoothing={0.025}
-              intensity={1.5}
-              height={300}
-            />
             <OrbitControls
               makeDefault
               autoRotate={!selectedPart}
@@ -337,12 +248,11 @@ export default function ModelViewer() {
               enableDamping={true}
               dampingFactor={0.05}
             />
-            <Environment preset="studio" />
+            <Environment preset="city" />
             <CameraController target={selectedPart} />
             <AdaptiveDpr pixelated />
             <AdaptiveEvents />
             <BakeShadows />
-            <Environment preset="city" />
           </Canvas>
           {Object.keys(modelParts).length > 0 && (
             <VisibilityControls
