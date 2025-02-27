@@ -45,8 +45,75 @@ export default function ModelViewer() {
   }, []);
 
   const handlePartFound = useCallback((meshRefs) => {
-    console.log('Mesh references found:', meshRefs);
     setMeshes(meshRefs);
+
+    // Helper function to create nested structure from path
+    const createNestedStructure = (path, object) => {
+      const parts = path.split(' / ');
+      
+      // Helper function to build the tree recursively
+      const buildLevel = (nameParts, currentObject, depth = 0) => {
+        const currentName = nameParts[depth];
+        const isLastLevel = depth === nameParts.length - 1;
+        
+        const node = {
+          name: currentName,
+          children: []
+        };
+
+        // If there are more levels, recurse
+        if (depth < nameParts.length - 1) {
+          node.children.push(buildLevel(nameParts, currentObject, depth + 1));
+        }
+
+        return node;
+      };
+
+      return buildLevel(parts, object);
+    };
+
+    // Create a hierarchical structure
+    const hierarchy = { children: [] };
+    Object.entries(meshRefs).forEach(([path, mesh]) => {
+      if (!mesh.isMesh) {
+        const structure = createNestedStructure(path, mesh);
+        
+        // Helper function to merge nodes
+        const mergeNodes = (source, targetArray) => {
+          const existing = targetArray.find(node => node.name === source.name);
+          if (existing) {
+            // Merge children recursively
+            source.children.forEach(child => {
+              mergeNodes(child, existing.children);
+            });
+          } else {
+            targetArray.push(source);
+          }
+        };
+
+        mergeNodes(structure, hierarchy.children);
+      }
+    });
+
+    try {
+      // Save hierarchy to JSON with better formatting
+      const json = JSON.stringify(hierarchy.children, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      // Create a temporary link element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'model-hierarchy.json';
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error saving model hierarchy:', error);
+    }
   }, []);
 
   const togglePartVisibility = useCallback((partName, forcedState) => {
@@ -166,8 +233,8 @@ export default function ModelViewer() {
     <div className="w-full h-screen relative bg-gradient-to-br from-white to-gray-100">
       {!modelUrl && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-10">
-          <label 
-            htmlFor="model-upload" 
+          <label
+            htmlFor="model-upload"
             className="inline-block px-10 py-5 bg-red-700 text-white rounded-lg cursor-pointer hover:bg-red-800 transition-colors mb-2.5"
           >
             Загрузить 3D модель (GLB/GLTF)
@@ -189,9 +256,8 @@ export default function ModelViewer() {
           {isLoading && <LoadingSpinner />}
           <button
             onClick={resetView}
-            className={`absolute top-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 whitespace-nowrap ${
-              selectedPart ? 'block' : 'hidden'
-            }`}
+            className={`absolute top-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 whitespace-nowrap ${selectedPart ? 'block' : 'hidden'
+              }`}
           >
             Сбросить вид
           </button>
@@ -205,14 +271,14 @@ export default function ModelViewer() {
             Загрузить другую модель
           </button>
           <Canvas
-            camera={{ 
-              position: [5, 5, 5], 
+            camera={{
+              position: [5, 5, 5],
               fov: 30,
               near: 0.1,
               far: 1000
             }}
             className="bg-transparent"
-            gl={{ 
+            gl={{
               antialias: true,
               alpha: true,
               powerPreference: "high-performance",
@@ -229,14 +295,14 @@ export default function ModelViewer() {
               adjustCamera={false}
               intensity={0.2}
             >
-              <Model 
+              <Model
                 url={modelUrl}
                 visibleParts={visibleParts}
                 onLoad={handleModelLoad}
                 onPartFound={handlePartFound}
               />
             </Stage>
-            <Bloom 
+            <Bloom
               luminanceThreshold={0.0} // Lower to capture all emissive light
               luminanceSmoothing={0.025}
               intensity={1.5}

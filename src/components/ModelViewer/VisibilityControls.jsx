@@ -175,12 +175,16 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
     const hasChildren = Object.keys(item.children).length > 0;
     const isCollapsed = collapsedItems[fullPath];
     
-    if (cleanName.includes('Solid')) {
+    // Skip rendering if it's a mesh or contains "Solid"
+    if (cleanName.includes('Solid') || cleanName.includes('mesh') || cleanName.toLowerCase().includes('mesh')) {
       return null;
     }
 
     const isVisible = visibleParts[fullPath] !== false; // Default to visible if not explicitly set to false
-    const childrenArray = Object.values(item.children).filter(child => !cleanPartName(child.name).includes('Solid'));
+    const childrenArray = Object.values(item.children).filter(child => {
+      const childName = cleanPartName(child.name);
+      return !childName.includes('Solid') && !childName.includes('mesh') && !childName.toLowerCase().includes('mesh');
+    });
     const allChildrenVisible = childrenArray.length > 0 && 
       childrenArray.every(child => visibleParts[child.fullPath] !== false);
     const anyChildrenVisible = childrenArray.some(child => visibleParts[child.fullPath] !== false);
@@ -191,7 +195,8 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
         // Toggle all children
         const toggleChildren = (children) => {
           Object.values(children).forEach(child => {
-            if (!cleanPartName(child.name).includes('Solid')) {
+            const childName = cleanPartName(child.name);
+            if (!childName.includes('Solid') && !childName.includes('mesh') && !childName.toLowerCase().includes('mesh')) {
               onToggle(child.fullPath, newState);
               if (Object.keys(child.children).length > 0) {
                 toggleChildren(child.children);
@@ -253,7 +258,10 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
         {hasChildren && !isCollapsed && (
           <div className="ml-6 space-y-1">
             {Object.values(item.children)
-              .filter(child => !cleanPartName(child.name).includes('Solid'))
+              .filter(child => {
+                const childName = cleanPartName(child.name);
+                return !childName.includes('Solid') && !childName.includes('mesh') && !childName.toLowerCase().includes('mesh');
+              })
               .sort((a, b) => cleanPartName(a.name).localeCompare(cleanPartName(b.name)))
               .map(child => (
                 <HierarchyItem
