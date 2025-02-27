@@ -94,26 +94,6 @@ export default function ModelViewer() {
         mergeNodes(structure, hierarchy.children);
       }
     });
-
-    try {
-      // Save hierarchy to JSON with better formatting
-      const json = JSON.stringify(hierarchy.children, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-
-      // Create a temporary link element and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'model-hierarchy.json';
-      document.body.appendChild(link);
-      link.click();
-
-      // Clean up
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error saving model hierarchy:', error);
-    }
   }, []);
 
   const togglePartVisibility = useCallback((partName, forcedState) => {

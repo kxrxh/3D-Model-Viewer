@@ -88,16 +88,30 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
     }
   }, [scene, onLoad, onPartFound]);
 
-  // Update visibility of original meshes based on visibleParts
+  // Update visibility of original meshes based on visibleParts, independent of parent state
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
         const fullPath = meshToPath.current[child.uuid];
         if (fullPath) {
+          // Set visibility based solely on visibleParts, independent of parent state
           child.visible = visibleParts[fullPath] !== false;
         } else {
-          child.visible = true; // Default to visible if no path
+          // Default to visible for unmapped meshes (e.g., root-level objects)
+          child.visible = true;
         }
+      } else if (child.isGroup) {
+        // Ensure groups don’t override child visibility
+        child.traverse((grandchild) => {
+          if (grandchild.isMesh) {
+            const fullPath = meshToPath.current[grandchild.uuid];
+            if (fullPath) {
+              grandchild.visible = visibleParts[fullPath] !== false;
+            } else {
+              grandchild.visible = true;
+            }
+          }
+        });
       }
     });
   }, [visibleParts, scene]);

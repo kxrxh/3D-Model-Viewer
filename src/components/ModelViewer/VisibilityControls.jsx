@@ -20,11 +20,11 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
   const getDisplayName = useCallback((fullPath) => {
     const parts = fullPath.split(' / ');
     const name = parts[0].split(' / ')[0];
-    return name.split(' / ')[0].replace(/\s*\/\s*Solid\d+_\d+$/, '');
+    return name.split(' / ')[0];
   }, []);
 
   const cleanPartName = useCallback((name) => {
-    return name.replace(/\s*\/\s*Solid\d+_\d+$/, '').replace(/\s*Solid\d+_\d+$/, '');
+    return name;
   }, []);
 
   const handlePartDragStart = useCallback((e, part) => {
@@ -61,14 +61,20 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
     }));
   }, []);
 
+  const checkGroupVisibility = useCallback((group) => {
+    if (!group || !group.parts || group.parts.length === 0) return false;
+    return group.parts.every(part => visibleParts[part] === true);
+  }, [visibleParts]);
+
   const handleToggleGroup = useCallback((groupName, forcedState) => {
     const group = groups[groupName];
     if (group) {
+      const newState = forcedState !== undefined ? forcedState : !checkGroupVisibility(group);
       group.parts.forEach(part => {
-        onToggle(part, forcedState !== undefined ? forcedState : !visibleParts[part]);
+        onToggle(part, newState);
       });
     }
-  }, [groups, onToggle, visibleParts]);
+  }, [groups, onToggle, checkGroupVisibility]);
 
   const handleAddGroup = useCallback((name) => {
     setGroups(prev => ({
@@ -169,34 +175,66 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
     return ungroupedParts;
   }, [parts, groups, getDisplayName]);
 
+  // Helper functions to determine group visibility
+  const isGroupVisible = useCallback((group) => {
+    return checkGroupVisibility(group);
+  }, [checkGroupVisibility]);
+
+  const isGroupPartiallyVisible = useCallback((group) => {
+    if (!group || !group.parts || group.parts.length === 0) return false;
+    const visiblePartsCount = group.parts.reduce((count, part) => {
+      return count + (visibleParts[part] === true ? 1 : 0);
+    }, 0);
+    return visiblePartsCount > 0 && visiblePartsCount < group.parts.length;
+  }, [visibleParts]);
+
   const HierarchyItem = useCallback(({ item, level = 0, parentPath = '' }) => {
     const cleanName = cleanPartName(item.name);
     const fullPath = item.fullPath;
     const hasChildren = Object.keys(item.children).length > 0;
     const isCollapsed = collapsedItems[fullPath];
     
-    // Skip rendering if it's a mesh or contains "Solid"
-    if (cleanName.includes('Solid') || cleanName.includes('mesh') || cleanName.toLowerCase().includes('mesh')) {
+    if (item.type === 'mesh') {
       return null;
     }
 
-    const isVisible = visibleParts[fullPath] !== false; // Default to visible if not explicitly set to false
-    const childrenArray = Object.values(item.children).filter(child => {
-      const childName = cleanPartName(child.name);
-      return !childName.includes('Solid') && !childName.includes('mesh') && !childName.toLowerCase().includes('mesh');
-    });
-    const allChildrenVisible = childrenArray.length > 0 && 
-      childrenArray.every(child => visibleParts[child.fullPath] !== false);
-    const anyChildrenVisible = childrenArray.some(child => visibleParts[child.fullPath] !== false);
+    const childrenArray = Object.values(item.children).filter(child => child.type !== 'mesh');
+
+    // Recursively check visibility of all descendant items
+    const checkDescendantVisibility = (children) => {
+      return Object.values(children)
+        .filter(child => child.type !== 'mesh')
+        .every(child => {
+          if (Object.keys(child.children).length > 0) {
+            return checkDescendantVisibility(child.children);
+          }
+          return visibleParts[child.fullPath] === true;
+        });
+    };
+
+    // Calculate visibility state based on children for parent items
+    const isVisible = hasChildren
+      ? childrenArray.length > 0 && checkDescendantVisibility(item.children)
+      : visibleParts[fullPath] === true;
+
+    // Calculate indeterminate state for parent items
+    const isIndeterminate = hasChildren && childrenArray.length > 0 && 
+      !checkDescendantVisibility(item.children) &&
+      Object.values(item.children)
+        .filter(child => child.type !== 'mesh')
+        .some(child => {
+          if (Object.keys(child.children).length > 0) {
+            return checkDescendantVisibility(child.children);
+          }
+          return visibleParts[child.fullPath] === true;
+        });
 
     const handleVisibilityToggle = () => {
-      const newState = hasChildren ? !allChildrenVisible : !isVisible;
+      const newState = !isVisible;
       if (hasChildren) {
-        // Toggle all children
         const toggleChildren = (children) => {
           Object.values(children).forEach(child => {
-            const childName = cleanPartName(child.name);
-            if (!childName.includes('Solid') && !childName.includes('mesh') && !childName.toLowerCase().includes('mesh')) {
+            if (child.type !== 'mesh') {
               onToggle(child.fullPath, newState);
               if (Object.keys(child.children).length > 0) {
                 toggleChildren(child.children);
@@ -234,10 +272,10 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
           {!hasChildren && <div className="w-4 mr-2" />}
           <input
             type="checkbox"
-            checked={hasChildren ? allChildrenVisible : isVisible}
+            checked={isVisible}
             ref={input => {
-              if (input && hasChildren) {
-                input.indeterminate = anyChildrenVisible && !allChildrenVisible;
+              if (input) {
+                input.indeterminate = isIndeterminate;
               }
             }}
             onChange={handleVisibilityToggle}
@@ -257,11 +295,7 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
         
         {hasChildren && !isCollapsed && (
           <div className="ml-6 space-y-1">
-            {Object.values(item.children)
-              .filter(child => {
-                const childName = cleanPartName(child.name);
-                return !childName.includes('Solid') && !childName.includes('mesh') && !childName.toLowerCase().includes('mesh');
-              })
+            {childrenArray
               .sort((a, b) => cleanPartName(a.name).localeCompare(cleanPartName(b.name)))
               .map(child => (
                 <HierarchyItem
@@ -349,7 +383,7 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
                   checked={isGroupVisible(group)}
                   ref={input => {
                     if (input) {
-                      input.indeterminate = isGroupPartiallyVisible(group) && !isGroupVisible(group);
+                      input.indeterminate = isGroupPartiallyVisible(group);
                     }
                   }}
                   onChange={() => handleToggleGroup(groupName)}
