@@ -130,6 +130,39 @@ export default function ModelViewer() {
     setSelectedPart(null);
   }, []);
 
+  const exportPartStructure = useCallback(() => {
+    // Create a hierarchical structure of the model parts
+    const structure = {};
+    Object.entries(meshes).forEach(([path, mesh]) => {
+      if (!mesh.isMesh) {
+        const parts = path.split(' / ');
+        let current = structure;
+        parts.forEach((part, index) => {
+          if (!current[part]) {
+            current[part] = {
+              name: part,
+              visible: visibleParts[path],
+              children: {},
+            };
+          }
+          current = current[part].children;
+        });
+      }
+    });
+
+    // Convert to JSON and download
+    const dataStr = JSON.stringify(structure, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'part-structure.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [meshes, visibleParts]);
+
   // Add glow effect to selected part (updated to handle the "Default" material)
   useEffect(() => {
     if (selectedPart) {
@@ -234,19 +267,22 @@ export default function ModelViewer() {
       {modelUrl && (
         <>
           {isLoading && <LoadingSpinner />}
-          <button
-            onClick={resetView}
-            className={`absolute top-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 whitespace-nowrap ${selectedPart ? 'block' : 'hidden'
-              }`}
-          >
-            Сбросить вид
-          </button>
+          <div className="absolute top-2.5 left-2.5 flex gap-2.5 z-10">
+            {selectedPart && (
+              <button
+                onClick={resetView}
+                className="px-6 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors whitespace-nowrap"
+              >
+                Сбросить вид
+              </button>
+            )}
+          </div>
           <button
             onClick={() => {
               URL.revokeObjectURL(modelUrl);
               setModelUrl(null);
             }}
-            className={`absolute bottom-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 whitespace-nowrap`}
+            className="absolute bottom-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded hover:bg-red-800 transition-colors z-10 whitespace-nowrap"
           >
             Загрузить другую модель
           </button>

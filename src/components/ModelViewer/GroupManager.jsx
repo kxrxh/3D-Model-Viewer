@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 
-const GroupManager = React.memo(({ groups, onAddGroup, onDeleteGroup, onEditGroup, onSaveGroups, onLoadGroups }) => {
+const GroupManager = React.memo(({ groups, onAddGroup, onDeleteGroup, onEditGroup, onSaveGroups, onLoadGroups, onExportStructure }) => {
   const [newGroupName, setNewGroupName] = useState('');
   const fileInputRef = useRef();
 
@@ -35,37 +35,49 @@ const GroupManager = React.memo(({ groups, onAddGroup, onDeleteGroup, onEditGrou
   };
 
   return (
-    <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm">
-      <div className="mb-4 flex gap-2">
+    <div className="flex flex-col gap-2 p-1">
+      <div className="flex gap-2">
         <input
           type="text"
+          placeholder="Название новой группы"
+          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
-          placeholder="Название новой группы"
-          className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-sm outline-none transition-all duration-200 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-        />
-        <button
-          onClick={() => {
-            if (newGroupName.trim()) {
-              onAddGroup(newGroupName.trim());
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && newGroupName) {
+              onAddGroup(newGroupName);
               setNewGroupName('');
             }
           }}
-          className="px-5 py-2.5 bg-red-600 text-white rounded-lg cursor-pointer text-sm font-medium hover:bg-red-700 transition-all duration-200 shadow-sm hover:shadow-md active:scale-95"
+        />
+        <button
+          onClick={() => {
+            if (newGroupName) {
+              onAddGroup(newGroupName);
+              setNewGroupName('');
+            }
+          }}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-all duration-200"
         >
           Новая группа
         </button>
       </div>
       <div className="flex gap-2">
         <button
+          onClick={onExportStructure}
+          className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200"
+        >
+          Экспорт структуры
+        </button>
+        <button
           onClick={handleExport}
-          className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg cursor-pointer text-sm font-medium hover:bg-gray-200 transition-all duration-200 border border-gray-200"
+          className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200"
         >
           Экспорт групп
         </button>
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg cursor-pointer text-sm font-medium hover:bg-gray-200 transition-all duration-200 border border-gray-200"
+          className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200"
         >
           Импорт групп
         </button>

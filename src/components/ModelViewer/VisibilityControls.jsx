@@ -357,6 +357,36 @@ const VisibilityControls = React.memo(({ parts, visibleParts, onToggle, onToggle
           }}
           onSaveGroups={() => {}}
           onLoadGroups={setGroups}
+          onExportStructure={() => {
+            // Create a hierarchical structure of all parts
+            const structure = {};
+            Object.keys(parts).forEach(path => {
+              const pathParts = path.split(' / ');
+              let current = structure;
+              pathParts.forEach((part, index) => {
+                if (!current[part]) {
+                  current[part] = {
+                    name: part,
+                    visible: visibleParts[path],
+                    children: {},
+                  };
+                }
+                current = current[part].children;
+              });
+            });
+
+            // Convert to JSON and download
+            const dataStr = JSON.stringify(structure, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'part-structure.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }}
         />
 
         {Object.entries(groups).map(([groupName, group]) => (
