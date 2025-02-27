@@ -27,7 +27,7 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
     });
   }, [scene]);
 
-  // Initialize model: map meshes to paths and find groups
+  // Initialize model: map meshes to paths and find groups/meshes
   useEffect(() => {
     if (!initialized.current) {
       const parts = {};
@@ -38,7 +38,7 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
         const path = [];
         let current = object;
         while (current && current !== scene) {
-          if (!current.isMesh) {
+          if (!current.isMesh) { // Only include group names in the path
             path.unshift(current.name || `unnamed_${current.type}`);
           }
           current = current.parent;
@@ -47,38 +47,24 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
       };
 
       // Map each mesh to its full path and collect parts
+      const meshRefs = {};
       scene.traverse((child) => {
         if (child.isMesh) {
-          const fullPath = getFullPath(child.parent);
+          const fullPath = getFullPath(child.parent); // Path to parent group
           if (fullPath) {
             meshToPath.current[child.uuid] = fullPath;
-            if (!parts[fullPath]) {
-              parts[fullPath] = true;
+            parts[fullPath] = true;
+            // Store the mesh itself under the path, not just the group
+            if (!meshRefs[fullPath]) {
+              meshRefs[fullPath] = child; // Reference the mesh directly
             }
+          } else {
+            // Handle root-level meshes (no parent groups)
+            const meshPath = child.name || `mesh_${child.uuid}`;
+            meshToPath.current[child.uuid] = meshPath;
+            parts[meshPath] = true;
+            meshRefs[meshPath] = child;
           }
-        }
-      });
-
-      // Function to find a group in the scene by its full path
-      const findGroupByPath = (scene, path) => {
-        const parts = path.split(' / ');
-        let current = scene;
-        for (const part of parts) {
-          const child = current.children.find(
-            (child) => child.name === part && child.isGroup
-          );
-          if (!child) return null;
-          current = child;
-        }
-        return current;
-      };
-
-      // Create meshRefs with actual groups from the scene
-      const meshRefs = {};
-      Object.keys(parts).forEach((path) => {
-        const group = findGroupByPath(scene, path);
-        if (group) {
-          meshRefs[path] = group;
         }
       });
 
@@ -88,30 +74,16 @@ function Model({ url, visibleParts, onLoad, onPartFound }) {
     }
   }, [scene, onLoad, onPartFound]);
 
-  // Update visibility of original meshes based on visibleParts, independent of parent state
+  // Update visibility of original meshes based on visibleParts
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
         const fullPath = meshToPath.current[child.uuid];
         if (fullPath) {
-          // Set visibility based solely on visibleParts, independent of parent state
           child.visible = visibleParts[fullPath] !== false;
         } else {
-          // Default to visible for unmapped meshes (e.g., root-level objects)
-          child.visible = true;
+          child.visible = true; // Default for unmapped meshes
         }
-      } else if (child.isGroup) {
-        // Ensure groups don’t override child visibility
-        child.traverse((grandchild) => {
-          if (grandchild.isMesh) {
-            const fullPath = meshToPath.current[grandchild.uuid];
-            if (fullPath) {
-              grandchild.visible = visibleParts[fullPath] !== false;
-            } else {
-              grandchild.visible = true;
-            }
-          }
-        });
       }
     });
   }, [visibleParts, scene]);
