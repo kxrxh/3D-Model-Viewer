@@ -8,6 +8,7 @@
 - Создание пошаговых инструкций по сборке
 - Добавление описаний к этапам сборки с помощью голосового ввода (Speech-to-Text)
 - Различные режимы просмотра (последовательный, изолированный)
+- Экспорт инструкций сборки в JSON формате или в виде полного пакета (ZIP архив с моделью и инструкциями)
 - Оптимизированный производительный рендеринг
 
 ## Установка и запуск
@@ -69,6 +70,42 @@
 7. Дождитесь окончания обработки записи
 8. Нажмите "Готово" для сохранения описания
 
+## Экспорт инструкций сборки
+
+Приложение позволяет экспортировать созданные инструкции по сборке для использования в других приложениях:
+
+1. Создайте необходимые этапы сборки с деталями и описаниями
+2. Нажмите кнопку "Экспорт сборки" в верхней части панели сборок
+3. Выберите желаемый формат экспорта:
+   - **Только JSON** - экспорт файла с информацией об этапах сборки, деталях и описаниях
+   - **Полный пакет (ZIP)** - экспорт ZIP-архива, содержащего как JSON с инструкциями, так и саму 3D модель
+4. Нажмите "Экспортировать" для скачивания файла
+
+### Формат экспортируемых данных
+
+Экспортированный JSON-файл содержит следующую структуру:
+
+```json
+{
+  "version": "1.0",
+  "createdAt": "2023-05-01T12:34:56.789Z",
+  "assemblyStages": [
+    {
+      "id": 1,
+      "name": "Название этапа",
+      "description": "Описание этапа сборки",
+      "parts": ["part1", "part2", "part3"]
+    },
+    // дополнительные этапы
+  ],
+  "availableParts": ["part1", "part2", "part3", "part4"]
+}
+```
+
+ZIP-архив содержит два файла:
+- `assembly-instructions.json` - JSON-файл с инструкциями (структура та же)
+- Исходный файл 3D-модели (например, `model.glb`)
+
 ## Технические детали
 
 ### Локальное распознавание речи
@@ -116,81 +153,81 @@ const args = [
 - Качество распознавания речи зависит от четкости произношения и уровня фонового шума
 - Первое распознавание может занять больше времени из-за загрузки модели
 
-# Speech-to-Text Viewer Application
+# Приложение для преобразования речи в текст
 
-A web application for speech-to-text conversion using whisper.cpp.
+Веб-приложение для преобразования речи в текст с использованием whisper.cpp.
 
-## Docker Setup
+## Настройка Docker
 
-This application is containerized and deployed using Docker Compose with Traefik as a reverse proxy.
+Данное приложение контейнеризировано и развертывается с использованием Docker Compose и Traefik в качестве обратного прокси.
 
-### Prerequisites
+### Предварительные требования
 
 - Docker
 - Docker Compose
 
-### Getting Started
+### Начало работы
 
-1. Clone this repository:
+1. Клонируйте репозиторий:
    ```bash
    git clone <repository-url>
    cd viewer-app
    ```
 
-2. Configure environment variables (optional):
-   - Edit the `.env` file to customize domain, email, and authentication
+2. Настройте переменные окружения (опционально):
+   - Отредактируйте файл `.env` для настройки домена, электронной почты и аутентификации
 
-3. Build and start the containers:
+3. Соберите и запустите контейнеры:
    ```bash
    docker-compose up -d
    ```
 
-4. Access the application:
-   - Main application: http://viewer-app.localhost (or your configured domain)
-   - Traefik dashboard: http://traefik.viewer-app.localhost (default login: admin/password)
+4. Доступ к приложению:
+   - Основное приложение: http://viewer-app.localhost (или ваш настроенный домен)
+   - Панель управления Traefik: http://traefik.viewer-app.localhost (логин по умолчанию: admin/password)
 
-## Production Deployment
+## Развертывание в производственной среде
 
-For production deployment:
+Для развертывания в производственной среде:
 
-1. Update the `.env` file with your domain and valid email for Let's Encrypt certificates:
+1. Обновите файл `.env` с вашим доменом и действительным адресом электронной почты для сертификатов Let's Encrypt:
    ```
    DOMAIN=your-domain.com
    ACME_EMAIL=your-email@example.com
    ```
 
-2. Generate a secure password for the Traefik dashboard:
+2. Сгенерируйте безопасный пароль для панели управления Traefik:
    ```bash
    docker run --rm httpd:alpine htpasswd -nb admin your_secure_password
    ```
-   Copy the output to the TRAEFIK_BASIC_AUTH variable in the `.env` file.
+   Скопируйте вывод в переменную TRAEFIK_BASIC_AUTH в файле `.env`.
 
-3. Launch the application:
+3. Запустите приложение:
    ```bash
    docker-compose up -d
    ```
 
-4. Set up your DNS to point to your server.
+4. Настройте DNS для указания на ваш сервер.
 
-## Architecture
+## Архитектура
 
-- **App Container**: Bun.js application with Whisper.cpp for speech recognition
-- **Traefik**: Reverse proxy handling SSL termination and routing
+- **Контейнер приложения**: Приложение на Bun.js с Whisper.cpp для распознавания речи
+- **Traefik**: Обратный прокси, обрабатывающий SSL-терминацию и маршрутизацию
 
-## Volumes
+## Тома
 
-- **whisper_data**: Persistent storage for audio files
-- **traefik_certificates**: Storage for Let's Encrypt certificates
+- **whisper_data**: Постоянное хранилище для аудиофайлов
+- **traefik_certificates**: Хранилище для сертификатов Let's Encrypt
 
-## Security
+## Безопасность
 
-- HTTPS is enabled by default (with automatic certificate generation)
-- Traefik dashboard is protected with basic authentication
+- HTTPS включен по умолчанию (с автоматической генерацией сертификатов)
+- Панель управления Traefik защищена базовой аутентификацией
 
-## Environment Variables
+## Переменные окружения
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| DOMAIN | Domain name for the application | viewer-app.localhost |
-| ACME_EMAIL | Email for Let's Encrypt | admin@example.com |
-| TRAEFIK_BASIC_AUTH | Credentials for Traefik dashboard | admin:hashed_password |
+| Переменная | Описание | Значение по умолчанию |
+|------------|----------|------------------------|
+| DOMAIN | Доменное имя для приложения | viewer-app.localhost |
+| ACME_EMAIL | Email для Let's Encrypt | admin@example.com |
+| TRAEFIK_BASIC_AUTH | Учетные данные для панели управления Traefik | admin:хешированный_пароль |
