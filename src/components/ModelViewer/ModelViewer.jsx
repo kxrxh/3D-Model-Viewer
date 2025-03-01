@@ -3,15 +3,15 @@ import { Canvas } from '@react-three/fiber';
 import { 
   OrbitControls, Environment, Stage, BakeShadows, 
   AdaptiveDpr, AdaptiveEvents, Stats, 
-  useProgress, ContactShadows, PerformanceMonitor
+  PerformanceMonitor
 } from '@react-three/drei';
 import * as THREE from 'three';
-import LoadingSpinner from '../LoadingSpinner';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 // Lazy load components to reduce initial bundle size
-const Model = lazy(() => import('./Model'));
-const AssemblyStateManager = lazy(() => import('./AssemblyStateManager'));
-const PartFocusController = lazy(() => import('./PartFocusController'));
+const Model = lazy(() => import('./core/Model'));
+const AssemblyStateManager = lazy(() => import('./controls/AssemblyStateManager'));
+const PartFocusController = lazy(() => import('./controls/PartFocusController'));
 
 // Performance settings
 THREE.Cache.enabled = true;
@@ -363,7 +363,7 @@ export default function ModelViewer() {
       <Suspense fallback={null}>
         <Stage
           adjustCamera={false}
-          intensity={0.5}
+          intensity={1}
           shadows={false}
           environment="city"
           preset="rembrandt"

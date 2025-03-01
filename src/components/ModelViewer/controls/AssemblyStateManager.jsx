@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import PartSelector from './PartSelector';
-import SideMenu from './SideMenu';
+import PartSelector from '../PartSelector';
+import SideMenu from '../ui/SideMenu';
 
 export default function AssemblyStateManager({ 
   assemblyStates, 
