@@ -2,7 +2,7 @@ import React, { useRef, useState, useCallback, useEffect, useMemo, Suspense, laz
 import { Canvas } from '@react-three/fiber';
 import { 
   OrbitControls, Environment, Stage, BakeShadows, 
-  AdaptiveDpr, AdaptiveEvents, Stats, Loader, 
+  AdaptiveDpr, AdaptiveEvents, Stats, 
   useProgress, ContactShadows, PerformanceMonitor
 } from '@react-three/drei';
 import * as THREE from 'three';
@@ -17,6 +17,8 @@ const PartFocusController = lazy(() => import('./PartFocusController'));
 THREE.Cache.enabled = true;
 const DEFAULT_CAMERA_POSITION = [5, 5, 5];
 const DEFAULT_CAMERA_TARGET = [0, 0, 0];
+const MIN_DPR = 1;
+const MAX_DPR = window.devicePixelRatio || 2;
 
 // Custom hooks for better state management
 function useModelState() {
@@ -231,7 +233,7 @@ export default function ModelViewer() {
 
   // Component state
   const [isLoading, setIsLoading] = useState(false);
-  const [dpr, setDpr] = useState(1);
+  const [dpr, setDpr] = useState(Math.min(1.5, window.devicePixelRatio || 1));
   const [showStats, setShowStats] = useState(false);
   const controlsRef = useRef();
   const sceneRef = useRef();
@@ -351,12 +353,19 @@ export default function ModelViewer() {
     >
       <color attach="background" args={['#E2E8F0']} />
       
+      <PerformanceMonitor
+        onIncline={() => setDpr(Math.min(dpr + 0.5, MAX_DPR))}
+        onDecline={() => setDpr(Math.max(dpr - 0.5, MIN_DPR))}
+        bounds={[45, 60]} // FPS ranges for performance adjustments
+        flipflops={3} // Stability before change
+      />
+      
       <Suspense fallback={null}>
         <Stage
           adjustCamera={false}
           intensity={0.5}
           shadows={false}
-          environment="apartment"
+          environment="city"
           preset="rembrandt"
           ground={false}
         >
@@ -393,7 +402,7 @@ export default function ModelViewer() {
         <PartFocusController selectedParts={selectedParts} controls={controlsRef} />
       </Suspense>
       
-      <AdaptiveDpr pixelated />
+      <AdaptiveDpr pixelated={false} />
       <AdaptiveEvents />
       <BakeShadows />
       
@@ -463,8 +472,6 @@ export default function ModelViewer() {
           </button>
           
           {Scene3D}
-          
-          <Loader />
           
           {AssemblyStateManagerComponent}
         </>

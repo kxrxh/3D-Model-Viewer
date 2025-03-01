@@ -72,15 +72,23 @@ function filterTree(tree, searchQuery) {
 function TreeNode({ node, selectedParts, setSelectedParts, globalSelectedParts, depth = 0 }) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = Object.keys(node.children).length > 0;
-  const unionSelected = selectedParts.includes(node.fullPath) || (globalSelectedParts && globalSelectedParts.includes(node.fullPath));
-  const isGlobalOnly = !selectedParts.includes(node.fullPath) && (globalSelectedParts && globalSelectedParts.includes(node.fullPath));
+  const isInGlobal = globalSelectedParts && globalSelectedParts.includes(node.fullPath);
+  const isInSelected = selectedParts.includes(node.fullPath);
+  const isGlobalOnly = isInGlobal && !isInSelected;
+  
+  // Only show checked if actually selected in current selection, not just in global
+  const isChecked = isInSelected;
+  const showBackground = isInSelected || isInGlobal;
 
   const handleToggle = () => {
-    if (isGlobalOnly) return;
     const descendantPaths = getAllDescendantPaths(node);
-    if (selectedParts.includes(node.fullPath)) {
+    
+    if (isInSelected) {
+      // If in current selection, remove it
       setSelectedParts(prev => prev.filter(p => !descendantPaths.includes(p)));
     } else {
+      // If not in current selection, add it
+      // This includes adding back items that are only in global selections
       setSelectedParts(prev => Array.from(new Set([...prev, ...descendantPaths])));
     }
   };
@@ -89,7 +97,7 @@ function TreeNode({ node, selectedParts, setSelectedParts, globalSelectedParts, 
     <div className="relative">
       <div 
         className={`flex items-center rounded py-1.5 ${depth === 0 ? 'mb-1' : ''} transition-colors 
-                    ${unionSelected ? 'bg-red-50' : 'hover:bg-gray-50'}`}
+                   ${showBackground ? 'bg-red-50' : 'hover:bg-gray-50'}`}
       >
         {hasChildren && (
           <button 
@@ -111,16 +119,14 @@ function TreeNode({ node, selectedParts, setSelectedParts, globalSelectedParts, 
         <div className="relative flex items-center">
           <input
             type="checkbox"
-            checked={unionSelected}
+            checked={isChecked}
             onChange={handleToggle}
-            disabled={isGlobalOnly}
             className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 
               checked:border-red-500 checked:bg-red-700 
-              hover:border-red-500 disabled:cursor-not-allowed disabled:opacity-50
-              transition-all duration-200"
+              hover:border-red-500 transition-all duration-200"
           />
           <svg
-            className="pointer-events-none absolute h-5 w-5 opacity-0 peer-checked:opacity-100 text-white"
+            className={`pointer-events-none absolute h-5 w-5 opacity-0 ${isChecked ? 'opacity-100' : ''} text-white`}
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="none"
@@ -226,7 +232,7 @@ export default function PartSelector({ modelParts, selectedParts, setSelectedPar
         </div>
       </div>
       
-      <div className="min-h-[200px] max-h-[40vh] overflow-y-auto pr-1 -mr-1 space-y-1">
+      <div className="max-h-[40vh] overflow-y-auto pr-1 -mr-1 space-y-1">
         {hasFilteredResults ? (
           Object.values(filteredTree).map(node => (
             <TreeNode 
@@ -238,7 +244,7 @@ export default function PartSelector({ modelParts, selectedParts, setSelectedPar
             />
           ))
         ) : (
-          <div className="flex items-center justify-center h-[180px] text-center text-gray-500 italic">
+          <div className="text-center py-4 text-gray-500 italic">
             {searchQuery ? 'Нет результатов по запросу' : 'Нет доступных частей'}
           </div>
         )}
