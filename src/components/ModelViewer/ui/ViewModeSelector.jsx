@@ -31,18 +31,6 @@ const ViewModeSelector = ({ viewMode, setViewMode }) => (
           Изолированный
         </span>
       </label>
-      <label className="relative flex-1">
-        <input
-          type="radio"
-          value="exploded"
-          checked={viewMode === 'exploded'}
-          onChange={() => setViewMode('exploded')}
-          className="sr-only peer"
-        />
-        <span className="px-3 py-1.5 rounded cursor-pointer text-sm font-medium block text-center transition-all duration-200 peer-checked:bg-red-700 peer-checked:text-white hover:bg-gray-200 peer-checked:hover:bg-red-800">
-          Разнесенный
-        </span>
-      </label>
     </div>
   </div>
 );

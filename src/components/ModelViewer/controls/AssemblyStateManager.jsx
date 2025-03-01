@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import PartSelector from '../PartSelector';
 import SideMenu from '../ui/SideMenu';
+import MicrophoneInput from '../../common/MicrophoneInput';
 
 export default function AssemblyStateManager({ 
   assemblyStates, 
@@ -13,6 +14,8 @@ export default function AssemblyStateManager({
   const [editingStateIndex, setEditingStateIndex] = useState(null);
   const [selectedParts, setSelectedParts] = useState([]);
   const [showPartSelector, setShowPartSelector] = useState(false);
+  const [showDescriptionEditor, setShowDescriptionEditor] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(null);
 
   const globalSelectedParts = useMemo(() => {
     const s = new Set();
@@ -51,6 +54,25 @@ export default function AssemblyStateManager({
   const handleCancelEdit = () => {
     setEditingStateIndex(null);
     setShowPartSelector(false);
+  };
+
+  const handleEditDescription = (index) => {
+    setEditingStateIndex(index);
+    setEditingDescription(assemblyStates[index].description || '');
+    setShowDescriptionEditor(true);
+  };
+
+  const handleSaveDescription = (description) => {
+    setAssemblyStates(prev => {
+      const newStates = [...prev];
+      newStates[editingStateIndex].description = description;
+      return newStates;
+    });
+  };
+
+  const handleCloseDescriptionEditor = () => {
+    setEditingStateIndex(null);
+    setShowDescriptionEditor(false);
   };
 
   return (
@@ -109,7 +131,14 @@ export default function AssemblyStateManager({
                     </span>
                   </div>
                   
-                  <div className="flex gap-1.5">
+                  {/* Display description if it exists */}
+                  {state.description && (
+                    <div className="mb-2 text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 max-h-32 overflow-y-auto">
+                      {state.description}
+                    </div>
+                  )}
+
+                  <div className="flex gap-1.5 mb-1.5">
                     <button
                       onClick={() => handleEditParts(index)}
                       className="flex-1 px-2 py-1.5 bg-gray-700 text-white text-xs rounded-md hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-1"
@@ -143,6 +172,17 @@ export default function AssemblyStateManager({
                       {currentStateIndex === index ? 'Активна' : 'Просмотр'}
                     </button>
                   </div>
+
+                  {/* Add description button */}
+                  <button
+                    onClick={() => handleEditDescription(index)}
+                    className="w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    {state.description ? 'Изменить описание' : 'Добавить описание'}
+                  </button>
                 </div>
               ))}
             </div>
@@ -184,6 +224,40 @@ export default function AssemblyStateManager({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
                 Отменить
+              </button>
+            </div>
+          </div>
+        </SideMenu>
+      )}
+
+      {/* Description Editor with Speech-to-Text - Only shown when editing description */}
+      {showDescriptionEditor && (
+        <SideMenu 
+          title={editingStateIndex !== null ? `Описание этапа: ${assemblyStates[editingStateIndex].name}` : 'Описание этапа'} 
+          initialPosition={{ x: window.innerWidth / 2 - 250, y: 80 }}
+          width={500}
+          minHeight={300}
+        >
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600 mb-2">
+              Введите описание или используйте микрофон для голосового ввода инструкций по сборке
+            </div>
+            
+            <MicrophoneInput
+              initialText={editingDescription}
+              onTranscriptComplete={handleSaveDescription}
+              placeholder="Опишите шаги сборки для данного этапа..."
+            />
+            
+            <div className="flex gap-2 pt-3 border-t mt-2">
+              <button
+                onClick={handleCloseDescriptionEditor}
+                className="flex-1 px-3 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-all duration-200 shadow hover:shadow-md flex items-center justify-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Готово
               </button>
             </div>
           </div>

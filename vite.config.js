@@ -7,5 +7,13 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     outDir: 'build',
-  }
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: true,
+    chunkSizeWarningLimit: 1000,
+  },
+  server: {
+    port: 3000,
+    strictPort: false,
+  },
 })

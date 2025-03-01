@@ -110,6 +110,10 @@ function useAssemblyState() {
     setCurrentStateIndex(-1);
   }, []);
 
+  const handleAddState = useCallback(() => {
+    setAssemblyStates(prev => [...prev, { name: `Сборка ${prev.length + 1}`, parts: [], description: '' }]);
+  }, []);
+
   return {
     assemblyStates,
     setAssemblyStates,
@@ -117,7 +121,8 @@ function useAssemblyState() {
     setCurrentStateIndex,
     viewMode,
     setViewMode,
-    resetAssemblyState
+    resetAssemblyState,
+    handleAddState
   };
 }
 
@@ -150,18 +155,6 @@ const ViewModeSelector = React.memo(({ viewMode, setViewMode }) => (
         />
         <span className="px-3 py-1.5 rounded cursor-pointer text-sm font-medium block text-center transition-all duration-200 peer-checked:bg-red-700 peer-checked:text-white hover:bg-gray-200 peer-checked:hover:bg-red-800">
           Изолированный
-        </span>
-      </label>
-      <label className="relative flex-1">
-        <input
-          type="radio"
-          value="exploded"
-          checked={viewMode === 'exploded'}
-          onChange={() => setViewMode('exploded')}
-          className="sr-only peer"
-        />
-        <span className="px-3 py-1.5 rounded cursor-pointer text-sm font-medium block text-center transition-all duration-200 peer-checked:bg-red-700 peer-checked:text-white hover:bg-gray-200 peer-checked:hover:bg-red-800">
-          Разнесенный
         </span>
       </label>
     </div>
@@ -228,7 +221,7 @@ export default function ModelViewer() {
   
   const {
     assemblyStates, setAssemblyStates, currentStateIndex, setCurrentStateIndex,
-    viewMode, setViewMode, resetAssemblyState
+    viewMode, setViewMode, resetAssemblyState, handleAddState
   } = assemblyState;
 
   // Component state
@@ -289,15 +282,6 @@ export default function ModelViewer() {
             visible[part] = true;
           });
         }
-      } else if (viewMode === 'exploded') {
-        // Show all parts with exploded view (implemented in Model component)
-        if (assemblyStates[currentStateIndex]?.parts) {
-          assemblyStates[currentStateIndex].parts.forEach(part => {
-            visible[part] = true;
-          });
-        }
-        // Add flag for exploded view
-        visible._explodedView = true;
       }
     } else {
       // Default: show all parts
@@ -374,7 +358,7 @@ export default function ModelViewer() {
             visibleParts={computedVisibleParts}
             onLoad={handleModelLoad}
             onPartFound={handlePartFound}
-            exploded={viewMode === 'exploded'}
+            exploded={false}
           />
         </Stage>
       </Suspense>
