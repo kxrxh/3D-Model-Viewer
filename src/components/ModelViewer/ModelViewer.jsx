@@ -231,7 +231,10 @@ export default function ModelViewer() {
   const controlsRef = useRef();
   const sceneRef = useRef();
 
-  // Handle file uploads
+  // Declare a state for tracking the model file
+  const [modelFile, setModelFile] = useState(null);
+  
+  // Modify the handleFileUpload function to store the model file
   const handleFileUpload = useCallback((event) => {
     const file = event.target.files[0];
     if (file) {
@@ -241,6 +244,7 @@ export default function ModelViewer() {
       // Create and set new object URL
       const url = URL.createObjectURL(file);
       setModelUrl(url);
+      setModelFile(file); // Store the model file
       setIsLoading(true);
       
       // Reset all state
@@ -417,10 +421,21 @@ export default function ModelViewer() {
           onStateSelect={setCurrentStateIndex}
           currentStateIndex={currentStateIndex}
           viewMode={viewMode}
+          modelUrl={modelUrl}
+          modelFile={modelFile}
         />
       </Suspense>
     );
-  }, [assemblyStates, setAssemblyStates, modelParts, currentStateIndex, viewMode, setCurrentStateIndex]);
+  }, [
+    assemblyStates, 
+    setAssemblyStates, 
+    modelParts, 
+    currentStateIndex, 
+    viewMode, 
+    setCurrentStateIndex,
+    modelUrl,
+    modelFile
+  ]);
 
   return (
     <div className="w-full h-screen relative bg-gradient-to-br from-slate-100 to-slate-200">

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import PartSelector from '../PartSelector';
 import SideMenu from '../ui/SideMenu';
 import MicrophoneInput from '../../common/MicrophoneInput';
+import ExportDialog from '../ui/ExportDialog';
 
 export default function AssemblyStateManager({ 
   assemblyStates, 
@@ -9,13 +10,16 @@ export default function AssemblyStateManager({
   modelParts, 
   onStateSelect,
   currentStateIndex,
-  viewMode
+  viewMode,
+  modelUrl,
+  modelFile
 }) {
   const [editingStateIndex, setEditingStateIndex] = useState(null);
   const [selectedParts, setSelectedParts] = useState([]);
   const [showPartSelector, setShowPartSelector] = useState(false);
   const [showDescriptionEditor, setShowDescriptionEditor] = useState(false);
   const [editingDescription, setEditingDescription] = useState(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const globalSelectedParts = useMemo(() => {
     const s = new Set();
@@ -75,6 +79,11 @@ export default function AssemblyStateManager({
     setShowDescriptionEditor(false);
   };
 
+  // Function to open the export dialog
+  const handleExportAssemblyInstructions = () => {
+    setShowExportDialog(true);
+  };
+
   return (
     <>
       {/* Assembly States Widget */}
@@ -96,6 +105,21 @@ export default function AssemblyStateManager({
               Добавить сборку
             </button>
           </div>
+          
+          {/* Export Assembly Instructions button - only show if there are assembly states */}
+          {assemblyStates.length > 0 && (
+            <div className="mb-3">
+              <button
+                onClick={handleExportAssemblyInstructions}
+                className="w-full px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 shadow hover:shadow-md flex items-center justify-center gap-1.5"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Экспорт сборки
+              </button>
+            </div>
+          )}
           
           {assemblyStates.length === 0 ? (
             <div className="text-center py-6 text-gray-500 italic">
@@ -263,6 +287,16 @@ export default function AssemblyStateManager({
           </div>
         </SideMenu>
       )}
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        assemblyStates={assemblyStates}
+        modelParts={modelParts}
+        modelUrl={modelUrl}
+        modelFile={modelFile}
+      />
     </>
   );
 } 
