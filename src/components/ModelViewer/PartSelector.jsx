@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 function buildTree(parts) {
   const tree = {};
@@ -23,6 +23,50 @@ function getAllDescendantPaths(node) {
     paths = paths.concat(getAllDescendantPaths(child));
   });
   return paths;
+}
+
+// Filter tree based on search query
+function filterTree(tree, searchQuery) {
+  if (!searchQuery) return tree;
+  
+  const searchLower = searchQuery.toLowerCase();
+  const filteredTree = {};
+  
+  const filterNode = (node, parentKey) => {
+    const nodeNameLower = node.name.toLowerCase();
+    const matchesSearch = nodeNameLower.includes(searchLower);
+    
+    // Check if any children match the search
+    const filteredChildren = {};
+    let hasMatchingChildren = false;
+    
+    Object.entries(node.children).forEach(([key, child]) => {
+      const childResult = filterNode(child, key);
+      if (childResult) {
+        filteredChildren[key] = childResult;
+        hasMatchingChildren = true;
+      }
+    });
+    
+    // Include this node if it matches or has matching children
+    if (matchesSearch || hasMatchingChildren) {
+      return {
+        ...node,
+        children: filteredChildren
+      };
+    }
+    
+    return null;
+  };
+  
+  Object.entries(tree).forEach(([key, node]) => {
+    const filteredNode = filterNode(node, key);
+    if (filteredNode) {
+      filteredTree[key] = filteredNode;
+    }
+  });
+  
+  return filteredTree;
 }
 
 function TreeNode({ node, selectedParts, setSelectedParts, globalSelectedParts, depth = 0 }) {
@@ -115,7 +159,13 @@ function TreeNode({ node, selectedParts, setSelectedParts, globalSelectedParts, 
 }
 
 export default function PartSelector({ modelParts, selectedParts, setSelectedParts, globalSelectedParts }) {
+  const [searchQuery, setSearchQuery] = useState('');
   const tree = buildTree(modelParts);
+  
+  // Filter tree based on search query
+  const filteredTree = useMemo(() => {
+    return filterTree(tree, searchQuery);
+  }, [tree, searchQuery]);
   
   const selectAll = () => {
     setSelectedParts(Object.keys(modelParts));
@@ -125,33 +175,73 @@ export default function PartSelector({ modelParts, selectedParts, setSelectedPar
     setSelectedParts([]);
   };
 
+  const hasFilteredResults = Object.keys(filteredTree).length > 0;
+
   return (
     <div className="space-y-3">
-      <div className="flex justify-between pb-2 border-b border-gray-200">
-        <button 
-          onClick={selectAll}
-          className="px-2 py-1 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
-        >
-          Выбрать все
-        </button>
-        <button 
-          onClick={deselectAll}
-          className="px-2 py-1 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
-        >
-          Снять выбор
-        </button>
+      <div className="flex flex-col gap-2 pb-2 border-b border-gray-200">
+        {/* Search Input */}
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск частей..."
+            className="w-full pl-8 pr-4 py-1.5 text-sm bg-gray-50 border border-gray-300 rounded-md focus:ring-1 focus:ring-red-700 focus:border-red-700 focus:outline-none"
+          />
+          <svg 
+            className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gray-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        
+        <div className="flex justify-between">
+          <button 
+            onClick={selectAll}
+            className="px-2 py-1 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
+          >
+            Выбрать все
+          </button>
+          <button 
+            onClick={deselectAll}
+            className="px-2 py-1 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
+          >
+            Снять выбор
+          </button>
+        </div>
       </div>
       
-      <div className="max-h-[40vh] overflow-y-auto pr-1 -mr-1 space-y-1">
-        {Object.values(tree).map(node => (
-          <TreeNode 
-            key={node.fullPath} 
-            node={node} 
-            selectedParts={selectedParts} 
-            setSelectedParts={setSelectedParts} 
-            globalSelectedParts={globalSelectedParts} 
-          />
-        ))}
+      <div className="min-h-[200px] max-h-[40vh] overflow-y-auto pr-1 -mr-1 space-y-1">
+        {hasFilteredResults ? (
+          Object.values(filteredTree).map(node => (
+            <TreeNode 
+              key={node.fullPath} 
+              node={node} 
+              selectedParts={selectedParts} 
+              setSelectedParts={setSelectedParts} 
+              globalSelectedParts={globalSelectedParts} 
+            />
+          ))
+        ) : (
+          <div className="flex items-center justify-center h-[180px] text-center text-gray-500 italic">
+            {searchQuery ? 'Нет результатов по запросу' : 'Нет доступных частей'}
+          </div>
+        )}
       </div>
     </div>
   );

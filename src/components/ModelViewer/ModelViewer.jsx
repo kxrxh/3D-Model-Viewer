@@ -356,7 +356,7 @@ export default function ModelViewer() {
           adjustCamera={false}
           intensity={0.5}
           shadows={false}
-          environment="city"
+          environment="apartment"
           preset="rembrandt"
           ground={false}
         >
