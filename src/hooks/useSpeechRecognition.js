@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState(null);
   const [isSupported, setIsSupported] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,6 +46,7 @@ const useSpeechRecognition = () => {
     
     try {
       setTranscript('');
+      setInterimTranscript('');
       setError(null);
       
       // First try native Web Speech API (works in Chrome/Edge)
@@ -56,9 +58,18 @@ const useSpeechRecognition = () => {
         recognition.lang = 'ru-RU';
         
         recognition.onresult = (event) => {
+          // Get the most recent result
           const current = event.resultIndex;
-          const transcriptText = event.results[current][0].transcript;
-          setTranscript(transcriptText);
+          const result = event.results[current];
+          
+          if (result.isFinal) {
+            // Set final result
+            setTranscript(result[0].transcript.trim());
+            setInterimTranscript(''); // Clear interim results when we get a final result
+          } else {
+            // Update interim results for real-time display
+            setInterimTranscript(result[0].transcript.trim());
+          }
         };
         
         recognition.onerror = (event) => {
@@ -184,6 +195,7 @@ const useSpeechRecognition = () => {
   return {
     isListening,
     transcript,
+    interimTranscript,
     error,
     startListening,
     stopListening,

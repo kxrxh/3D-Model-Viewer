@@ -4,9 +4,11 @@ import RecordingIndicator from './RecordingIndicator';
 
 const MicrophoneInput = ({ onTranscriptComplete, placeholder, initialText = '' }) => {
   const [text, setText] = useState(initialText);
+  const [lastProcessedTranscript, setLastProcessedTranscript] = useState('');
   const { 
     isListening, 
     transcript, 
+    interimTranscript,
     error, 
     startListening, 
     stopListening, 
@@ -16,10 +18,21 @@ const MicrophoneInput = ({ onTranscriptComplete, placeholder, initialText = '' }
   
   // Update component text when transcript changes
   useEffect(() => {
-    if (transcript) {
-      setText(prev => prev + ' ' + transcript);
+    // Only process if we have a transcript and it's different from the last one we processed
+    if (transcript && transcript !== lastProcessedTranscript) {
+      setLastProcessedTranscript(transcript);
+      
+      const prevText = text.trim();
+      
+      // If text is empty or we're just starting, set the text directly
+      if (prevText === '') {
+        setText(transcript);
+      } else {
+        // Append the new transcript part, avoiding duplication
+        setText(prevText => prevText + ' ' + transcript);
+      }
     }
-  }, [transcript]);
+  }, [transcript]); // Remove 'text' from the dependency array
   
   // Handle manual text changes
   const handleTextChange = (e) => {
@@ -32,6 +45,8 @@ const MicrophoneInput = ({ onTranscriptComplete, placeholder, initialText = '' }
       stopListening();
       // Don't call onTranscriptComplete here, wait for possible processing
     } else {
+      // Store the current text before starting new recording
+      setLastProcessedTranscript(''); // Reset so we process the next transcript
       startListening();
     }
   };
@@ -124,7 +139,10 @@ const MicrophoneInput = ({ onTranscriptComplete, placeholder, initialText = '' }
         {isListening && (
           <div className="text-sm text-gray-500 mt-1 flex items-center">
             <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
-            Запись... {transcript && `"${transcript}"`}
+            Запись... 
+            {interimTranscript && (
+              <span className="ml-1 font-medium text-red-600">{interimTranscript}</span>
+            )}
           </div>
         )}
         
