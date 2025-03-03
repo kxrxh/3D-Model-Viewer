@@ -20,6 +20,73 @@ const DEFAULT_CAMERA_TARGET = [0, 0, 0];
 const MIN_DPR = 1;
 const MAX_DPR = window.devicePixelRatio || 2;
 
+// Performance profiles for different rendering quality
+const PERFORMANCE_PROFILES = {
+  high: {
+    name: 'Высокое качество',
+    dpr: Math.min(2.5, window.devicePixelRatio || 1.5),
+    shadows: true,
+    shadowMapSize: 2048,
+    antialias: true,
+    physicallyCorrectLights: true,
+    environment: 'city',
+    gl: {
+      powerPreference: "high-performance",
+      precision: "highp",
+      antialias: true,
+      alpha: true
+    }
+  },
+  medium: {
+    name: 'Среднее качество',
+    dpr: Math.min(1.25, window.devicePixelRatio || 1),
+    shadows: true,
+    shadowMapSize: 1024,
+    antialias: true,
+    physicallyCorrectLights: true,
+    environment: 'city',
+    gl: {
+      powerPreference: "high-performance",
+      precision: "mediump",
+      antialias: true
+    }
+  },
+  low: {
+    name: 'Низкое качество',
+    dpr: 0.75,
+    shadows: false,
+    antialias: false,
+    physicallyCorrectLights: false,
+    environment: 'city',
+    pixelRatio: 0.75,
+    gl: {
+      powerPreference: "low-power",
+      precision: "lowp",
+      antialias: false,
+      depth: false,
+      stencil: false
+    }
+  },
+  auto: {
+    name: 'Автоматически',
+    adaptiveDpr: true,
+    adaptivePerformance: true,
+    dpr: window.devicePixelRatio > 2 ? 1.5 : (window.devicePixelRatio > 1 ? window.devicePixelRatio : 1),
+    shadows: navigator.hardwareConcurrency > 4,
+    shadowMapSize: navigator.hardwareConcurrency > 6 ? 1024 : 512,
+    antialias: navigator.deviceMemory > 4 || navigator.hardwareConcurrency > 4,
+    physicallyCorrectLights: navigator.hardwareConcurrency > 2,
+    environment: 'city',
+    regress: true,
+    gl: {
+      powerPreference: "high-performance",
+      precision: navigator.hardwareConcurrency > 4 ? "highp" : "mediump",
+      antialias: navigator.deviceMemory > 4 || navigator.hardwareConcurrency > 4,
+      failIfMajorPerformanceCaveat: false
+    }
+  }
+};
+
 // Custom hooks for better state management
 function useModelState() {
   const [modelParts, setModelParts] = useState({});
@@ -126,6 +193,37 @@ function useAssemblyState() {
   };
 }
 
+function usePerformanceProfiles() {
+  const [activeProfile, setActiveProfile] = useState('auto');
+  const [dpr, setDpr] = useState(PERFORMANCE_PROFILES.auto.dpr);
+  const [adaptiveDprEnabled, setAdaptiveDprEnabled] = useState(true);
+
+  const handleProfileChange = useCallback((profileKey) => {
+    setActiveProfile(profileKey);
+    const profile = PERFORMANCE_PROFILES[profileKey];
+    setDpr(profile.dpr);
+    setAdaptiveDprEnabled(profileKey === 'auto');
+  }, []);
+
+  const handlePerformanceChange = useCallback((isIncline) => {
+    if (activeProfile !== 'auto') return;
+    setDpr(prev => isIncline 
+      ? Math.min(prev + 0.5, MAX_DPR) 
+      : Math.max(prev - 0.5, MIN_DPR)
+    );
+  }, [activeProfile]);
+
+  return {
+    profiles: PERFORMANCE_PROFILES,
+    activeProfile,
+    setActiveProfile: handleProfileChange,
+    dpr,
+    setDpr,
+    adaptiveDprEnabled,
+    handlePerformanceChange
+  };
+}
+
 // UI Components
 const ViewModeSelector = React.memo(({ viewMode, setViewMode }) => (
   <div className="flex flex-col gap-2 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg z-10 w-80">
@@ -209,11 +307,65 @@ const ControlPanel = React.memo(({ resetView, showStats, setShowStats }) => (
   </div>
 ));
 
+// Add Performance Profile Selector component
+const PerformanceProfileSelector = React.memo(({ profiles, activeProfile, setActiveProfile }) => {
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  
+  return (
+    <div className="flex flex-col bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-lg z-10 w-80">
+      <div 
+        className="w-full text-sm font-medium text-gray-700 flex justify-between items-center cursor-pointer py-1" 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        <span>Качество</span>
+        <div className="flex items-center">
+          <span className="text-xs mr-1 text-gray-500">{profiles[activeProfile].name}</span>
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className={`h-3 w-3 transition-transform duration-300 ${isCollapsed ? '' : 'transform rotate-180'}`} 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+      
+      {!isCollapsed && (
+        <div className="flex flex-col gap-0.5 mt-1 pt-1 border-t border-gray-200">
+          {Object.entries(profiles).map(([key, profile]) => (
+            <label key={key} className="relative flex items-center">
+              <input
+                type="radio"
+                value={key}
+                checked={activeProfile === key}
+                onChange={() => setActiveProfile(key)}
+                className="sr-only peer"
+              />
+              <span className="px-2 py-1 rounded cursor-pointer text-xs font-medium block w-full text-left transition-all duration-200 peer-checked:bg-red-700 peer-checked:text-white hover:bg-gray-200 peer-checked:hover:bg-red-800 flex justify-between">
+                <span>{profile.name}</span>
+                {key === 'auto' && (
+                  <span className="text-xs opacity-70 self-center ml-1">
+                    (А)
+                  </span>
+                )}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
 // Main component
 export default function ModelViewer() {
   // Use custom hooks for state management
   const modelState = useModelState();
   const assemblyState = useAssemblyState();
+  const performanceState = usePerformanceProfiles();
+  
   const {
     modelParts, visibleParts, modelUrl, setModelUrl, selectedParts, setSelectedParts,
     resetModelState, handleModelLoad, handlePartFound
@@ -224,9 +376,18 @@ export default function ModelViewer() {
     viewMode, setViewMode, resetAssemblyState, handleAddState
   } = assemblyState;
 
+  const {
+    profiles,
+    activeProfile,
+    setActiveProfile,
+    dpr,
+    setDpr,
+    adaptiveDprEnabled,
+    handlePerformanceChange
+  } = performanceState;
+
   // Component state
   const [isLoading, setIsLoading] = useState(false);
-  const [dpr, setDpr] = useState(Math.min(1.5, window.devicePixelRatio || 1));
   const [showStats, setShowStats] = useState(false);
   const controlsRef = useRef();
   const sceneRef = useRef();
@@ -327,33 +488,35 @@ export default function ModelViewer() {
       dpr={dpr}
       gl={{
         alpha: true,
-        powerPreference: "high-performance",
+        powerPreference: profiles[activeProfile].gl.powerPreference,
         stencil: false,
         depth: true,
-        antialias: true,
-        precision: "highp"
+        antialias: profiles[activeProfile].gl.antialias,
+        precision: profiles[activeProfile].gl.precision
       }}
-      shadows
+      shadows={profiles[activeProfile].shadows}
       onCreated={({ gl }) => {
         gl.setClearColor(new THREE.Color('#E2E8F0'), 1);
-        gl.physicallyCorrectLights = true;
+        gl.physicallyCorrectLights = profiles[activeProfile].physicallyCorrectLights;
       }}
     >
       <color attach="background" args={['#E2E8F0']} />
       
-      <PerformanceMonitor
-        onIncline={() => setDpr(Math.min(dpr + 0.5, MAX_DPR))}
-        onDecline={() => setDpr(Math.max(dpr - 0.5, MIN_DPR))}
-        bounds={[45, 60]} // FPS ranges for performance adjustments
-        flipflops={3} // Stability before change
-      />
+      {adaptiveDprEnabled && (
+        <PerformanceMonitor
+          onIncline={() => handlePerformanceChange(true)}
+          onDecline={() => handlePerformanceChange(false)}
+          bounds={[45, 60]} // FPS ranges for performance adjustments
+          flipflops={3} // Stability before change
+        />
+      )}
       
       <Suspense fallback={null}>
         <Stage
           adjustCamera={false}
           intensity={1}
-          shadows={false}
-          environment="city"
+          shadows={profiles[activeProfile].shadows}
+          environment={profiles[activeProfile].environment}
           preset="rembrandt"
           ground={false}
         >
@@ -390,11 +553,11 @@ export default function ModelViewer() {
         <PartFocusController selectedParts={selectedParts} controls={controlsRef} />
       </Suspense>
       
-      <AdaptiveDpr pixelated={false} />
+      {adaptiveDprEnabled && <AdaptiveDpr pixelated={false} />}
       <AdaptiveEvents />
       <BakeShadows />
       
-      {showStats && <Stats className="stats" />}
+      {showStats && <Stats className="stats" position="bottom-right" />}
     </Canvas>
   ), [
     modelUrl, 
@@ -405,7 +568,11 @@ export default function ModelViewer() {
     selectedParts, 
     currentStateIndex,
     showStats,
-    dpr
+    dpr,
+    activeProfile,
+    profiles,
+    adaptiveDprEnabled,
+    handlePerformanceChange
   ]);
 
   // Memoize the AssemblyStateManager to prevent re-renders
@@ -453,8 +620,13 @@ export default function ModelViewer() {
             setShowStats={setShowStats}
           />
           
-          <div className="absolute top-2.5 right-2.5 z-10">
+          <div className="absolute top-2.5 right-2.5 z-10 flex flex-col gap-2.5">
             <ViewModeSelector viewMode={viewMode} setViewMode={setViewMode} />
+            <PerformanceProfileSelector 
+              profiles={profiles} 
+              activeProfile={activeProfile} 
+              setActiveProfile={setActiveProfile} 
+            />
           </div>
           
           <button

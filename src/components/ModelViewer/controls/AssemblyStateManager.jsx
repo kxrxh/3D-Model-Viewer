@@ -142,7 +142,7 @@ export default function AssemblyStateManager({
       {/* Assembly States Widget */}
       <Widget 
         title="Стадии сборки" 
-        initialPosition={{ x: window.innerWidth - 370, y: 120 }}
+        initialPosition={{ x: window.innerWidth - 370, y: window.innerHeight / 2 }}
         width={360}
         minHeight={200}
         minWidth={360}
