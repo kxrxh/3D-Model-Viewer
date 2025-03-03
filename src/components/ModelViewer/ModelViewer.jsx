@@ -343,7 +343,7 @@ const PerformanceProfileSelector = React.memo(({ profiles, activeProfile, setAct
                 onChange={() => setActiveProfile(key)}
                 className="sr-only peer"
               />
-              <span className="px-2 py-1 rounded cursor-pointer text-xs font-medium block w-full text-left transition-all duration-200 peer-checked:bg-red-700 peer-checked:text-white hover:bg-gray-200 peer-checked:hover:bg-red-800 flex justify-between">
+              <span className="px-2 py-1 rounded cursor-pointer text-xs font-medium w-full text-left transition-all duration-200 peer-checked:bg-red-700 peer-checked:text-white hover:bg-gray-200 peer-checked:hover:bg-red-800 flex justify-between">
                 <span>{profile.name}</span>
                 {key === 'auto' && (
                   <span className="text-xs opacity-70 self-center ml-1">
