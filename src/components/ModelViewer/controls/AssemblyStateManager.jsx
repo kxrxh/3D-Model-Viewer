@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import PartSelector from '../PartSelector';
-import SideMenu from '../ui/SideMenu';
+import Widget from '../ui/Widget';
 import MicrophoneInput from '../../common/MicrophoneInput';
 import ExportDialog from '../ui/ExportDialog';
 
@@ -87,7 +87,7 @@ export default function AssemblyStateManager({
   return (
     <>
       {/* Assembly States Widget */}
-      <SideMenu 
+      <Widget 
         title="Сборки" 
         initialPosition={{ x: window.innerWidth - 340, y: 80 }}
         width={320}
@@ -111,7 +111,7 @@ export default function AssemblyStateManager({
             <div className="mb-3">
               <button
                 onClick={handleExportAssemblyInstructions}
-                className="w-full px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all duration-200 shadow hover:shadow-md flex items-center justify-center gap-1.5"
+                className="w-full px-3 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition-all duration-200 shadow hover:shadow-md flex items-center justify-center gap-1.5"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -200,7 +200,7 @@ export default function AssemblyStateManager({
                   {/* Add description button */}
                   <button
                     onClick={() => handleEditDescription(index)}
-                    className="w-full px-2 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-1"
+                    className="w-full px-2 py-1.5 bg-red-700 text-white text-xs rounded-md hover:bg-red-800 transition-all duration-200 flex items-center justify-center gap-1"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -212,11 +212,11 @@ export default function AssemblyStateManager({
             </div>
           )}
         </div>
-      </SideMenu>
+      </Widget>
 
       {/* Part Selector Widget - Only shown when editing */}
       {showPartSelector && (
-        <SideMenu 
+        <Widget 
           title={editingStateIndex !== null ? `Выбор частей: ${assemblyStates[editingStateIndex].name}` : 'Выбор частей'} 
           initialPosition={{ x: 80, y: 80 }}
           width={320}
@@ -251,12 +251,12 @@ export default function AssemblyStateManager({
               </button>
             </div>
           </div>
-        </SideMenu>
+        </Widget>
       )}
 
       {/* Description Editor with Speech-to-Text - Only shown when editing description */}
       {showDescriptionEditor && (
-        <SideMenu 
+        <Widget 
           title={editingStateIndex !== null ? `Описание этапа: ${assemblyStates[editingStateIndex].name}` : 'Описание этапа'} 
           initialPosition={{ x: window.innerWidth / 2 - 250, y: 80 }}
           width={500}
@@ -285,7 +285,7 @@ export default function AssemblyStateManager({
               </button>
             </div>
           </div>
-        </SideMenu>
+        </Widget>
       )}
 
       {/* Export Dialog */}
