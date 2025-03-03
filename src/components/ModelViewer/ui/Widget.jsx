@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const Widget = ({ children, title = '', initialPosition = { x: 20, y: 20 }, width = 320, minHeight = 200, isCollapsible = true, className = '' }) => {
+const Widget = ({ children, title = '', initialPosition = { x: 20, y: 20 }, width = 320, minHeight = 200, minWidth = 200, isCollapsible = true, className = '' }) => {
   const [position, setPosition] = useState(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -35,7 +35,6 @@ const Widget = ({ children, title = '', initialPosition = { x: 20, y: 20 }, widt
 
   const handleResizeMouseMove = (e) => {
     if (isResizing && menuRef.current) {
-      const minWidth = 280; // Increased minimum width to prevent too narrow widget
       const maxWidth = window.innerWidth - position.x - 20; // Maximum width (20px margin from right edge)
       
       const deltaX = e.clientX - dragOffset.x;
