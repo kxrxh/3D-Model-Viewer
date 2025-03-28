@@ -1,37 +1,34 @@
 {
-  "name": "3d-assembly-viewer",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build --outDir build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "server": "bun run server.js",
-    "start": "bun run build && bun run server"
-  },
-  "dependencies": {
-    "@react-three/drei": "^10.0.3",
-    "@react-three/fiber": "^9.0.4",
-    "@react-three/postprocessing": "^3.0.4",
-    "jszip": "^3.10.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tailwindcss": "^4.0.9",
-    "three": "^0.173.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.21.0",
-    "@tailwindcss/vite": "^4.0.9",
-    "@types/react": "^19.0.10",
-    "@types/react-dom": "^19.0.4",
-    "@vitejs/plugin-react-swc": "^3.8.0",
-    "eslint": "^9.21.0",
-    "eslint-plugin-react": "^7.37.4",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.19",
-    "globals": "^15.15.0",
-    "vite": "^6.2.0"
-  }
+	"name": "constructor-app",
+	"private": true,
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build --outDir build",
+		"lint": "bunx @biomejs/biome lint .",
+		"format": "bunx @biomejs/biome format --write .",
+		"preview": "vite preview",
+		"server": "bun run server.js",
+		"start": "bun run build && bun run server"
+	},
+	"dependencies": {
+		"@react-three/drei": "^10.0.5",
+		"@react-three/fiber": "^9.1.0",
+		"@react-three/postprocessing": "^3.0.4",
+		"jszip": "^3.10.1",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"tailwindcss": "^4.0.17",
+		"three": "^0.173.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@tailwindcss/vite": "^4.0.17",
+		"@types/react": "^19.0.12",
+		"@types/react-dom": "^19.0.4",
+		"@vitejs/plugin-react-swc": "^3.8.1",
+		"globals": "^15.15.0",
+		"vite": "^6.2.3"
+	}
 }

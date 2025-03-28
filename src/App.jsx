@@ -1,12 +1,12 @@
-import React from 'react';
-import ModelViewer from './components/ModelViewer';
+import React from "react";
+import ModelViewer from "./components/ModelViewer";
 
 function App() {
-  return (
-    <>
-      <ModelViewer />
-    </>
-  );
+	return (
+		<>
+			<ModelViewer />
+		</>
+	);
 }
 
 export default App;

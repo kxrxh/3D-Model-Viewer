@@ -1,14 +1,14 @@
 // Main component
-export { default } from './ModelViewer';
+export { default } from "./ModelViewer";
 
 // UI Components
-export * from './ui';
+export * from "./ui";
 
 // Core Components
-export * from './core';
+export * from "./core";
 
 // Control Components
-export * from './controls';
+export * from "./controls";
 
 // Part Selector
-export { default as PartSelector } from './PartSelector'; 
+export { default as PartSelector } from "./PartSelector";

@@ -1,5 +1,5 @@
 // Export common components
-export * from './common';
+export * from "./common";
 
 // Export ModelViewer components
-export * from './ModelViewer'; 
+export * from "./ModelViewer";
