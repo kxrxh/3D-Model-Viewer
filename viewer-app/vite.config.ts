@@ -4,10 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-	plugins: [
-		react(),
-		tailwindcss(),
-	],
+	plugins: [react(), tailwindcss()],
 	server: {
 		port: 3000,
 		strictPort: false,
@@ -25,16 +22,16 @@ export default defineConfig({
 		rollupOptions: {
 			output: {
 				manualChunks: (id) => {
-					if (id.includes('node_modules')) {
-						if (id.includes('react') || id.includes('react-dom')) {
-							return 'react-vendor';
+					if (id.includes("node_modules")) {
+						if (id.includes("react") || id.includes("react-dom")) {
+							return "react-vendor";
 						}
-						
-						if (id.includes('@emotion') || id.includes('framer-motion')) {
-							return 'animation-vendor';
+
+						if (id.includes("@emotion") || id.includes("framer-motion")) {
+							return "animation-vendor";
 						}
-						
-						return 'vendor';
+
+						return "vendor";
 					}
 				},
 				chunkFileNames: "assets/js/[name]-[hash].js",
@@ -44,13 +41,13 @@ export default defineConfig({
 		},
 	},
 	optimizeDeps: {
-		include: ['react', 'react-dom'],
+		include: ["react", "react-dom"],
 		esbuildOptions: {
-			target: 'esnext',
+			target: "esnext",
 		},
 	},
 	esbuild: {
-		logOverride: { 'this-is-undefined-in-esm': 'silent' },
-		legalComments: 'none',
+		logOverride: { "this-is-undefined-in-esm": "silent" },
+		legalComments: "none",
 	},
 });

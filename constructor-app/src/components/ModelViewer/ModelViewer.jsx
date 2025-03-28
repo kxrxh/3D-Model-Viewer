@@ -149,9 +149,9 @@ function useModelState() {
 	const toggleAllParts = useCallback((visible) => {
 		setVisibleParts((prev) => {
 			const newVisibleParts = {};
-			Object.keys(prev).forEach((part) => {
+			for (const part of Object.keys(prev)) {
 				newVisibleParts[part] = visible;
-			});
+			}
 			return newVisibleParts;
 		});
 	}, []);
@@ -640,8 +640,8 @@ export default function ModelViewer() {
 					enablePan={true}
 					minPolarAngle={0}
 					maxPolarAngle={Math.PI}
-					minAzimuthAngle={-Infinity}
-					maxAzimuthAngle={Infinity}
+					minAzimuthAngle={Number.NEGATIVE_INFINITY}
+					maxAzimuthAngle={Number.POSITIVE_INFINITY}
 					enableDamping={true}
 					dampingFactor={0.05}
 					rotateSpeed={0.8}
