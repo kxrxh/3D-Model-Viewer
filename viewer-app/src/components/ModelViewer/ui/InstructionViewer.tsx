@@ -1,5 +1,14 @@
-import { useState, useEffect } from "react";
-import { IoChevronBackOutline, IoChevronForwardOutline } from "react-icons/io5";
+import { useState, useEffect, useCallback } from "react";
+import type { KeyboardEvent } from "react";
+import { 
+	IoChevronBackOutline, 
+	IoChevronForwardOutline, 
+	IoEyeOutline, 
+	IoEyeOffOutline,
+	IoLayersOutline,
+	IoInformationCircleOutline,
+	IoCheckmarkCircleOutline
+} from "react-icons/io5";
 
 interface InstructionStep {
 	id: number;
@@ -21,16 +30,18 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	onStepChange,
 	onVisibilityChange,
 }) => {
-	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">(
-		"cumulative",
-	);
+	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">("cumulative");
+	const [expanded, setExpanded] = useState(false);
+	const [visibleParts, setVisibleParts] = useState<Record<string, boolean>>({});
 
 	// Обновляем видимость при изменении шага или режима просмотра
 	useEffect(() => {
 		if (instructions && instructions.length > 0) {
-			updateVisibleParts(currentStep, viewMode);
+			const newVisibility = calculateVisibleParts(currentStep, viewMode);
+			setVisibleParts(newVisibility);
+			onVisibilityChange(newVisibility);
 		}
-	}, [instructions, currentStep, viewMode]);
+	}, [instructions, currentStep, viewMode, onVisibilityChange]);
 
 	const handleNextStep = () => {
 		if (currentStep < instructions.length) {
@@ -45,7 +56,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	};
 
 	// Обновляет видимость деталей в зависимости от текущего шага и режима просмотра
-	const updateVisibleParts = (stepIndex: number, mode: "cumulative" | "isolated") => {
+	const calculateVisibleParts = (stepIndex: number, mode: "cumulative" | "isolated") => {
 		const newVisibleParts: Record<string, boolean> = {};
 		
 		const allPartNames = new Set<string>();
@@ -87,14 +98,31 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 			}
 		}
 		
-		// Применяем изменения видимости
-		onVisibilityChange(newVisibleParts);
+		return newVisibleParts;
 	};
 
 	// Обработчик переключения режима просмотра
 	const handleViewModeChange = (mode: "cumulative" | "isolated") => {
 		setViewMode(mode);
 	};
+
+	// Обработчик переключения видимости отдельной детали
+	const togglePartVisibility = useCallback((partName: string) => {
+		const newVisibility = {
+			...visibleParts,
+			[partName]: !visibleParts[partName]
+		};
+		setVisibleParts(newVisibility);
+		onVisibilityChange(newVisibility);
+	}, [visibleParts, onVisibilityChange]);
+
+	// Обработчик нажатия клавиш для переключения видимости деталей
+	const handlePartKeyDown = useCallback((e: KeyboardEvent<HTMLButtonElement>, partName: string) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			togglePartVisibility(partName);
+		}
+	}, [togglePartVisibility]);
 
 	const renderStepTitle = () => {
 		if (currentStep === 0) {
@@ -105,11 +133,13 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 
 	const getCurrentPartCount = () => {
 		if (currentStep === 0) {
-			let totalParts = 0;
+			const totalParts = new Set<string>();
 			for (const step of instructions) {
-				totalParts += step.parts.length;
+				for (const part of step.parts) {
+					totalParts.add(part);
+				}
 			}
-			return totalParts;
+			return totalParts.size;
 		}
 		return instructions[currentStep - 1]?.parts.length || 0;
 	};
@@ -121,92 +151,192 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		return instructions[currentStep - 1]?.description || "";
 	};
 
+	// Получение списка деталей для текущего шага
+	const getCurrentParts = () => {
+		if (currentStep === 0) {
+			// Для шага 0 отображаем все уникальные детали
+			const allParts = new Set<string>();
+			for (const step of instructions) {
+				for (const part of step.parts) {
+					allParts.add(part);
+				}
+			}
+			return Array.from(allParts);
+		}
+		return instructions[currentStep - 1]?.parts || [];
+	};
+
+	// Получение прогресса сборки в процентах
+	const getProgressPercentage = () => {
+		if (currentStep === 0) return 0;
+		return Math.min(100, Math.floor((currentStep / instructions.length) * 100));
+	};
+
 	return (
-		<div>
-			<div className="flex justify-between items-center mb-4">
-				<div className="flex space-x-2">
-					<button
-						type="button"
-						onClick={() => handleViewModeChange("cumulative")}
-						className={`px-3 py-1 text-sm rounded ${
-							viewMode === "cumulative"
-								? "bg-red-700 text-white"
-								: "bg-gray-200 text-gray-700"
-						}`}
-						disabled={currentStep === 0}
-					>
-						Накопительно
-					</button>
-					<button
-						type="button"
-						onClick={() => handleViewModeChange("isolated")}
-						className={`px-3 py-1 text-sm rounded ${
-							viewMode === "isolated"
-								? "bg-red-700 text-white"
-								: "bg-gray-200 text-gray-700"
-						}`}
-						disabled={currentStep === 0}
-					>
-						Изолированно
-					</button>
+		<div className="p-1">
+			{/* Заголовок и прогресс */}
+			<div className="flex flex-col mb-5">
+				<div className="flex justify-between items-center mb-3">
+					<span className="text-base font-medium bg-red-100 text-red-800 px-4 py-1.5 rounded-full">
+						{currentStep === 0 ? "Обзор" : `Шаг ${currentStep}/${instructions.length}`}
+					</span>
+				</div>
+				
+				{/* Прогресс-бар */}
+				<div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+					<div 
+						className="bg-red-700 h-3 rounded-full transition-all duration-500 ease-in-out" 
+						style={{ width: `${getProgressPercentage()}%` }} 
+					/>
+				</div>
+				
+				{/* Название шага */}
+				<div className="flex justify-between items-center">
+					<h3 className="font-semibold text-lg">{renderStepTitle()}</h3>
+					<div className="text-sm text-gray-600 flex items-center">
+						<IoLayersOutline className="mr-1.5" size={18} />
+						{getCurrentPartCount()} {getCurrentPartCount() === 1 ? 'деталь' : 'деталей'}
+					</div>
 				</div>
 			</div>
 
-			{instructions.length > 0 ? (
-				<>
-					<div className="mb-4">
-						<div className="flex justify-between items-center mb-2">
-							<h3 className="font-medium">
-								Шаг {currentStep} из {instructions.length}:{" "}
-								{renderStepTitle()}
-							</h3>
-							<div className="text-sm text-gray-500">
-								{getCurrentPartCount()} деталей
-							</div>
-						</div>
-
-						{getCurrentDescription() && (
-							<div className="bg-gray-100 p-3 rounded text-sm">
-								{getCurrentDescription()}
-							</div>
-						)}
-					</div>
-
-					<div className="flex justify-between">
+			{/* Переключатель режима просмотра */}
+			{instructions.length > 0 && (
+				<div className="flex justify-between items-center mb-5">
+					<div className="bg-gray-100 p-1 rounded-lg">
 						<button
 							type="button"
-							onClick={handlePrevStep}
+							onClick={() => handleViewModeChange("cumulative")}
+							className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+								viewMode === "cumulative"
+									? "bg-red-700 text-white shadow-md"
+									: "bg-transparent text-gray-700 hover:bg-gray-200"
+							}`}
 							disabled={currentStep === 0}
-							className={`px-4 py-2 rounded flex items-center ${
-								currentStep === 0
-									? "bg-gray-200 text-gray-400 cursor-not-allowed"
-									: "bg-gray-700 text-white hover:bg-gray-800"
-							}`}
 						>
-							<IoChevronBackOutline className="mr-1" />
-							Назад
+							Накопительно
 						</button>
-
 						<button
 							type="button"
-							onClick={handleNextStep}
-							disabled={currentStep === instructions.length}
-							className={`px-4 py-2 rounded flex items-center ${
-								currentStep === instructions.length
-									? "bg-gray-200 text-gray-400 cursor-not-allowed"
-									: "bg-red-700 text-white hover:bg-red-800"
+							onClick={() => handleViewModeChange("isolated")}
+							className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+								viewMode === "isolated"
+									? "bg-red-700 text-white shadow-md"
+									: "bg-transparent text-gray-700 hover:bg-gray-200"
 							}`}
+							disabled={currentStep === 0}
 						>
-							Далее
-							<IoChevronForwardOutline className="ml-1" />
+							Изолированно
 						</button>
 					</div>
-				</>
-			) : (
-				<div className="text-center py-8 text-gray-500">
-					Инструкции не найдены
+					
+					<button
+						type="button"
+						onClick={() => setExpanded(!expanded)}
+						className="text-sm text-gray-600 flex items-center hover:text-red-700 transition-colors bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200"
+					>
+						{expanded ? "Скрыть детали" : "Показать детали"}
+						{expanded ? <IoEyeOffOutline className="ml-2" size={18} /> : <IoEyeOutline className="ml-2" size={18} />}
+					</button>
 				</div>
 			)}
+
+			{/* Описание шага */}
+			{getCurrentDescription() && (
+				<div className="mb-5 bg-gray-50 border border-gray-200 rounded-lg p-4 flex gap-3">
+					<IoInformationCircleOutline className="text-gray-500 flex-shrink-0 mt-0.5" size={20} />
+					<div className="text-sm text-gray-700">{getCurrentDescription()}</div>
+				</div>
+			)}
+
+			{/* Список деталей */}
+			{expanded && (
+				<div className="mb-5">
+					<h4 className="text-sm font-medium text-gray-600 mb-3 flex items-center">
+						<IoLayersOutline className="mr-1.5" size={16} /> Детали в этом шаге:
+					</h4>
+					<div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 pb-1">
+						{getCurrentParts().map((part) => (
+							<button 
+								key={part}
+								type="button"
+								className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all text-left
+									${visibleParts[part] 
+										? "bg-green-50 border-green-200 text-green-800" 
+										: "bg-gray-50 border-gray-200 text-gray-800 opacity-60"}`}
+								onClick={() => togglePartVisibility(part)}
+								onKeyDown={(e) => handlePartKeyDown(e, part)}
+							>
+								{visibleParts[part] 
+									? <IoEyeOutline className="text-green-600 flex-shrink-0" size={18} /> 
+									: <IoEyeOffOutline className="text-gray-500 flex-shrink-0" size={18} />}
+								<span className="text-sm truncate flex-1" title={part}>
+									{part}
+								</span>
+							</button>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Навигация по шагам */}
+			<div className="flex justify-between mt-5">
+				<button
+					type="button"
+					onClick={handlePrevStep}
+					disabled={currentStep === 0}
+					className={`px-4 py-2.5 rounded-lg flex items-center transition-all text-sm ${
+						currentStep === 0
+							? "bg-gray-100 text-gray-400 cursor-not-allowed"
+							: "bg-gray-200 text-gray-800 hover:bg-gray-300"
+					}`}
+				>
+					<IoChevronBackOutline className="mr-2" size={18} />
+					Назад
+				</button>
+
+				{currentStep > 0 && currentStep < instructions.length && (
+					<div className="hidden sm:flex items-center">
+						<span className="mx-2 text-xs font-medium text-gray-500">
+							{instructions.map((step) => (
+								<span 
+									key={`step-${step.id}`}
+									className={`inline-block w-2.5 h-2.5 mx-0.5 rounded-full ${
+										step.id < currentStep 
+											? 'bg-green-500' 
+											: step.id === currentStep 
+												? 'bg-red-500' 
+												: 'bg-gray-300'
+									}`}
+								/>
+							))}
+						</span>
+					</div>
+				)}
+
+				<button
+					type="button"
+					onClick={handleNextStep}
+					disabled={currentStep === instructions.length}
+					className={`px-4 py-2.5 rounded-lg flex items-center transition-all text-sm ${
+						currentStep === instructions.length
+							? "bg-gray-100 text-gray-400 cursor-not-allowed"
+							: "bg-red-700 text-white hover:bg-red-800"
+					}`}
+				>
+					{currentStep === instructions.length ? (
+						<>
+							<IoCheckmarkCircleOutline className="mr-2" size={18} />
+							Завершено
+						</>
+					) : (
+						<>
+							Далее
+							<IoChevronForwardOutline className="ml-2" size={18} />
+						</>
+					)}
+				</button>
+			</div>
 		</div>
 	);
 };

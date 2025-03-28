@@ -27,7 +27,7 @@ import {
 import { Model } from "./core";
 import PartFocusController from "./controls/PartFocusController";
 import { InstructionViewer, Widget } from "./ui";
-import FileUploader from "./FileUploader";
+import StartPage from "./StartPage";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import JSZip from "jszip";
 // Import react-icons
@@ -732,30 +732,13 @@ export default function ModelViewer() {
 	return (
 		<div className="w-full h-screen relative bg-gradient-to-br from-slate-100 to-slate-200">
 			{!showViewer && (
-				<>
-					<FileUploader
-						onFileUpload={handleModelUpload}
-						onInstructionUpload={handleInstructionUpload}
-						onMultiUpload={handleMultiUpload}
-						hasModel={hasModel}
-						hasInstructions={hasInstructions}
-					/>
-					{hasModel && !hasInstructions && (
-						<div className="absolute bottom-4 left-0 right-0 text-center">
-							<p className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-md inline-block shadow-md">
-								Модель загружена. Пожалуйста, загрузите файл инструкций (.json)
-							</p>
-						</div>
-					)}
-					{!hasModel && hasInstructions && (
-						<div className="absolute bottom-4 left-0 right-0 text-center">
-							<p className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-md inline-block shadow-md">
-								Инструкции загружены. Пожалуйста, загрузите файл модели (.glb,
-								.gltf)
-							</p>
-						</div>
-					)}
-				</>
+				<StartPage
+					onModelUpload={handleModelUpload}
+					onInstructionUpload={handleInstructionUpload}
+					onMultiUpload={handleMultiUpload}
+					hasModel={hasModel}
+					hasInstructions={hasInstructions}
+				/>
 			)}
 
 			{showViewer && (
@@ -780,7 +763,7 @@ export default function ModelViewer() {
 						<Widget
 							title="Инструкция по сборке"
 							initialPosition={{ x: 10, y: 70 }}
-							minWidth={400}
+							minWidth={500}
 						>
 							<InstructionViewer
 								instructions={instructions}
