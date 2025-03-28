@@ -11,6 +11,8 @@ import {
 	IoSettingsOutline,
 	IoColorPaletteOutline,
 	IoColorWandOutline,
+	IoVolumeHighOutline,
+	IoVolumeMuteOutline,
 } from "react-icons/io5";
 
 interface InstructionStep {
@@ -47,6 +49,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	const [expanded, setExpanded] = useState(false);
 	const [visibleParts, setVisibleParts] = useState<Record<string, boolean>>({});
 	const [showSettings, setShowSettings] = useState(false);
+	const [isSpeaking, setIsSpeaking] = useState(false);
 
 	// Обновляем видимость при изменении шага или режима просмотра
 	useEffect(() => {
@@ -56,6 +59,15 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 			onVisibilityChange(newVisibility);
 		}
 	}, [instructions, currentStep, viewMode, onVisibilityChange]);
+
+	// Прекращаем озвучку при смене шага
+	// biome-ignore lint/correctness/useExhaustiveDependencies: We only want to reset speech when step changes
+	useEffect(() => {
+		if (window.speechSynthesis) {
+			window.speechSynthesis.cancel();
+			setIsSpeaking(false);
+		}
+	}, [currentStep]);
 
 	const handleNextStep = () => {
 		if (currentStep < instructions.length) {
@@ -221,16 +233,97 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		return yiq > 128;
 	};
 
+	// Функция для озвучивания текущего шага
+	const speakCurrentStep = () => {
+		if (!window.speechSynthesis) {
+			console.warn("Браузер не поддерживает Web Speech API");
+			return;
+		}
+
+		// Остановить текущую озвучку, если воспроизводится
+		if (isSpeaking) {
+			window.speechSynthesis.cancel();
+			setIsSpeaking(false);
+			return;
+		}
+
+		let textToSpeak = "";
+
+		if (currentStep === 0) {
+			textToSpeak = "Просмотр. полной. модели. перед началом сборки";
+		} else {
+			const stepName = instructions[currentStep - 1]?.name || "";
+			const stepDescription = instructions[currentStep - 1]?.description || "";
+			
+			// Добавляем паузы и подсказки для улучшения произношения
+			textToSpeak = `Шаг ${currentStep} из ${instructions.length}. ${stepName.split(" ").join(". ")}`;
+			
+			if (stepDescription) {
+				// Разбиваем длинные предложения на фразы с паузами
+				const phrases = stepDescription.split(/[,.;:]/).filter(phrase => phrase.trim());
+				textToSpeak += `. ${phrases.join(". ")}`;
+			}
+		}
+
+		// Создаем несколько utterance для разных частей текста
+		// для более естественного произношения
+		const sentences = textToSpeak.split(". ").filter(s => s.trim());
+		
+		// Очистим очередь речи
+		window.speechSynthesis.cancel();
+		
+		// Создаем очередь фраз для последовательного произношения
+		for (let i = 0; i < sentences.length; i++) {
+			const utterance = new SpeechSynthesisUtterance(sentences[i]);
+			utterance.lang = "ru-RU";
+			utterance.rate = 0.9; // Замедляем немного для лучшего произношения
+			utterance.pitch = 1.0;
+			
+			// Только для последней фразы устанавливаем обработчик окончания
+			if (i === sentences.length - 1) {
+				utterance.onend = () => {
+					setIsSpeaking(false);
+				};
+				
+				utterance.onerror = () => {
+					setIsSpeaking(false);
+				};
+			}
+			
+			window.speechSynthesis.speak(utterance);
+		}
+		
+		setIsSpeaking(true);
+	};
+
 	return (
 		<div className="p-1">
 			{/* Заголовок и прогресс */}
 			<div className="flex flex-col mb-5">
 				<div className="flex justify-between items-center mb-3">
-					<span className="text-base font-medium bg-red-100 text-red-800 px-4 py-1.5 rounded-full">
-						{currentStep === 0
-							? "Обзор"
-							: `Шаг ${currentStep}/${instructions.length}`}
-					</span>
+					<div className="flex items-center gap-2">
+						<span className="text-base font-medium bg-red-100 text-red-800 px-4 py-1.5 rounded-full">
+							{currentStep === 0
+								? "Обзор"
+								: `Шаг ${currentStep}/${instructions.length}`}
+						</span>
+						<button
+							type="button"
+							onClick={speakCurrentStep}
+							className={`p-2 rounded-full ${
+								isSpeaking 
+									? "bg-red-100 text-red-800" 
+									: "bg-gray-100 hover:bg-gray-200 text-gray-700"
+							} transition-colors`}
+							title={isSpeaking ? "Остановить озвучку" : "Озвучить этап"}
+						>
+							{isSpeaking ? (
+								<IoVolumeMuteOutline size={20} />
+							) : (
+								<IoVolumeHighOutline size={20} />
+							)}
+						</button>
+					</div>
 					<button
 						type="button"
 						onClick={() => setShowSettings(!showSettings)}
