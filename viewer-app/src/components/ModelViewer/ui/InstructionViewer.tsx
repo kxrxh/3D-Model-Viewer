@@ -7,7 +7,10 @@ import {
 	IoEyeOffOutline,
 	IoLayersOutline,
 	IoInformationCircleOutline,
-	IoCheckmarkCircleOutline
+	IoCheckmarkCircleOutline,
+	IoSettingsOutline,
+	IoColorPaletteOutline,
+	IoColorWandOutline
 } from "react-icons/io5";
 
 interface InstructionStep {
@@ -22,6 +25,10 @@ interface InstructionViewerProps {
 	currentStep: number;
 	onStepChange: (step: number) => void;
 	onVisibilityChange: (parts: Record<string, boolean>) => void;
+	highlightEnabled?: boolean;
+	onHighlightEnabledChange?: (enabled: boolean) => void;
+	highlightColor?: string;
+	onHighlightColorChange?: (color: string) => void;
 }
 
 const InstructionViewer: React.FC<InstructionViewerProps> = ({
@@ -29,10 +36,15 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	currentStep,
 	onStepChange,
 	onVisibilityChange,
+	highlightEnabled = true,
+	onHighlightEnabledChange,
+	highlightColor = "#f87171",
+	onHighlightColorChange
 }) => {
 	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">("cumulative");
 	const [expanded, setExpanded] = useState(false);
 	const [visibleParts, setVisibleParts] = useState<Record<string, boolean>>({});
+	const [showSettings, setShowSettings] = useState(false);
 
 	// Обновляем видимость при изменении шага или режима просмотра
 	useEffect(() => {
@@ -124,6 +136,20 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		}
 	}, [togglePartVisibility]);
 
+	// Обработчик изменения цвета подсветки
+	const handleHighlightColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (onHighlightColorChange) {
+			onHighlightColorChange(e.target.value);
+		}
+	};
+
+	// Обработчик переключения подсветки
+	const handleHighlightToggle = () => {
+		if (onHighlightEnabledChange) {
+			onHighlightEnabledChange(!highlightEnabled);
+		}
+	};
+
 	const renderStepTitle = () => {
 		if (currentStep === 0) {
 			return "Полная модель";
@@ -172,6 +198,16 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		return Math.min(100, Math.floor((currentStep / instructions.length) * 100));
 	};
 
+	// Проверяем, светлый ли цвет подсветки (для контрастного текста)
+	const isLightColor = (color: string) => {
+		const hex = color.substring(1);
+		const r = Number.parseInt(hex.substr(0, 2), 16);
+		const g = Number.parseInt(hex.substr(2, 2), 16);
+		const b = Number.parseInt(hex.substr(4, 2), 16);
+		const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+		return yiq > 128;
+	};
+
 	return (
 		<div className="p-1">
 			{/* Заголовок и прогресс */}
@@ -180,7 +216,77 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 					<span className="text-base font-medium bg-red-100 text-red-800 px-4 py-1.5 rounded-full">
 						{currentStep === 0 ? "Обзор" : `Шаг ${currentStep}/${instructions.length}`}
 					</span>
+					<button 
+						type="button"
+						onClick={() => setShowSettings(!showSettings)}
+						className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center gap-1.5 transition-colors"
+					>
+						<IoSettingsOutline size={18} />
+						<span className="text-sm">Настройки</span>
+					</button>
 				</div>
+				
+				{/* Настройки подсветки */}
+				{showSettings && (
+					<div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+						<h4 className="font-medium text-sm mb-3 text-gray-800 flex items-center gap-1.5">
+							<IoColorWandOutline size={18} />
+							Настройки подсветки
+						</h4>
+						
+						<div className="space-y-3">
+							{/* Включение/отключение подсветки */}
+							<div className="flex items-center justify-between">
+								<label htmlFor="highlight-toggle" className="text-sm text-gray-700 flex items-center gap-1.5 cursor-pointer">
+									<IoColorPaletteOutline size={16} className={highlightEnabled ? "text-red-600" : "text-gray-500"} />
+									Подсветка деталей
+								</label>
+								<div className="flex items-center gap-1.5">
+									<span className="text-xs font-medium text-gray-500">
+										{highlightEnabled ? "Вкл" : "Выкл"}
+									</span>
+									<label htmlFor="highlight-toggle" className="relative inline-block w-10 align-middle select-none cursor-pointer">
+										<input 
+											type="checkbox" 
+											id="highlight-toggle" 
+											checked={highlightEnabled}
+											onChange={handleHighlightToggle}
+											className="sr-only peer"
+										/>
+										<div className="h-6 w-11 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-700 cursor-pointer shadow-inner hover:shadow" />
+									</label>
+								</div>
+							</div>
+							
+							{/* Выбор цвета подсветки */}
+							{highlightEnabled && (
+								<div className="flex items-center gap-3">
+									<label htmlFor="highlight-color" className="text-sm text-gray-700 whitespace-nowrap">
+										Цвет:
+									</label>
+									<div className="flex items-center flex-1 gap-2">
+										<input 
+											type="color" 
+											id="highlight-color" 
+											value={highlightColor}
+											onChange={handleHighlightColorChange}
+											className="h-8 w-8 rounded border-0 cursor-pointer"
+										/>
+										<div 
+											className="h-8 px-3 flex-1 rounded flex items-center justify-center text-sm font-medium"
+											style={{ 
+												backgroundColor: highlightColor, 
+												color: isLightColor(highlightColor) ? '#000' : '#fff' 
+											}}
+										>
+											{highlightColor}
+										</div>
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
 				
 				{/* Прогресс-бар */}
 				<div className="w-full bg-gray-200 rounded-full h-3 mb-2">

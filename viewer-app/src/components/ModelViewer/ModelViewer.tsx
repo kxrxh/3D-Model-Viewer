@@ -129,6 +129,7 @@ const PERFORMANCE_PROFILES = {
 function useModelState() {
 	const [modelParts, setModelParts] = useState<Record<string, boolean>>({});
 	const [visibleParts, setVisibleParts] = useState<Record<string, boolean>>({});
+	const [currentStepParts, setCurrentStepParts] = useState<string[]>([]);
 	const [meshes, setMeshes] = useState<Record<string, THREE.Mesh>>({});
 	const [selectedParts, setSelectedParts] = useState<THREE.Mesh[]>([]);
 	const [modelUrl, setModelUrl] = useState<string | null>(null);
@@ -138,6 +139,7 @@ function useModelState() {
 		isInitialized.current = false;
 		setModelParts({});
 		setVisibleParts({});
+		setCurrentStepParts([]);
 		setMeshes({});
 		setSelectedParts([]);
 	}, []);
@@ -161,6 +163,8 @@ function useModelState() {
 		modelParts,
 		visibleParts,
 		setVisibleParts,
+		currentStepParts,
+		setCurrentStepParts,
 		meshes,
 		selectedParts,
 		setSelectedParts,
@@ -344,11 +348,15 @@ export default function ModelViewer() {
 	const [currentStep, setCurrentStep] = useState<number>(0);
 	const [hasInstructions, setHasInstructions] = useState<boolean>(false);
 	const [hasModel, setHasModel] = useState<boolean>(false);
+	const [highlightColor, setHighlightColor] = useState<string>("#f87171"); // Default to a light red color
+	const [highlightEnabled, setHighlightEnabled] = useState<boolean>(true);
 
 	const {
 		modelParts,
 		visibleParts,
 		setVisibleParts,
+		currentStepParts,
+		setCurrentStepParts,
 		modelUrl,
 		setModelUrl,
 		selectedParts,
@@ -569,6 +577,19 @@ export default function ModelViewer() {
 		[showToast],
 	);
 
+	// Update currentStepParts when currentStep changes
+	useEffect(() => {
+		if (currentStep === 0 || !instructions.length) {
+			setCurrentStepParts([]);
+			return;
+		}
+		
+		const stepIndex = currentStep - 1;
+		if (stepIndex >= 0 && stepIndex < instructions.length) {
+			setCurrentStepParts(instructions[stepIndex].parts);
+		}
+	}, [currentStep, instructions, setCurrentStepParts]);
+
 	// Handle changes to visible parts based on instructions
 	const handleVisibilityChange = useCallback(
 		(newVisibleParts: Record<string, boolean>) => {
@@ -577,6 +598,21 @@ export default function ModelViewer() {
 		},
 		[setVisibleParts],
 	);
+
+	// Обработчик изменения цвета подсветки
+	const handleHighlightColorChange = useCallback((color: string) => {
+		setHighlightColor(color);
+	}, []);
+
+	// Обработчик включения/выключения подсветки
+	const handleHighlightEnabledChange = useCallback((enabled: boolean) => {
+		console.log("Изменение состояния подсветки:", enabled ? "включена" : "выключена");
+		setHighlightEnabled(enabled);
+		showToast(
+			`Подсветка деталей ${enabled ? "включена" : "выключена"}`, 
+			enabled ? "success" : "info"
+		);
+	}, [showToast]);
 
 	// Reset the view and camera
 	const resetView = useCallback(() => {
@@ -672,6 +708,9 @@ export default function ModelViewer() {
 						<Model
 							url={modelUrl || ""}
 							visibleParts={visibleParts}
+							currentStepParts={currentStepParts}
+							highlightColor={highlightColor}
+							highlightEnabled={highlightEnabled}
 							onLoad={handleModelLoad}
 							onPartFound={handlePartFound}
 						/>
@@ -714,6 +753,9 @@ export default function ModelViewer() {
 		[
 			modelUrl,
 			visibleParts,
+			currentStepParts,
+			highlightColor,
+			highlightEnabled,
 			handleModelLoad,
 			handlePartFound,
 			selectedParts,
@@ -728,7 +770,7 @@ export default function ModelViewer() {
 
 	// Determine if we should show the viewer or uploader
 	const showViewer = hasModel && modelUrl && hasInstructions;
-
+	
 	return (
 		<div className="w-full h-screen relative bg-gradient-to-br from-slate-100 to-slate-200">
 			{!showViewer && (
@@ -758,7 +800,7 @@ export default function ModelViewer() {
 							setActiveProfile={setActiveProfile}
 						/>
 					</div>
-
+					
 					{hasInstructions && instructions.length > 0 && (
 						<Widget
 							title="Инструкция по сборке"
@@ -770,6 +812,10 @@ export default function ModelViewer() {
 								currentStep={currentStep}
 								onStepChange={setCurrentStep}
 								onVisibilityChange={handleVisibilityChange}
+								highlightEnabled={highlightEnabled}
+								onHighlightEnabledChange={handleHighlightEnabledChange}
+								highlightColor={highlightColor}
+								onHighlightColorChange={handleHighlightColorChange}
 							/>
 						</Widget>
 					)}
@@ -807,4 +853,27 @@ export default function ModelViewer() {
 			</ToastContainer>
 		</div>
 	);
+}
+
+// Функция для определения, является ли цвет светлым (для выбора контрастного текста)
+function isLightColor(color: string): boolean {
+	// Преобразование цвета в формат RGB
+	let r = 0;
+	let g = 0;
+	let b = 0;
+	
+	if (color.startsWith('#')) {
+		const hex = color.substring(1);
+		r = Number.parseInt(hex.substr(0, 2), 16);
+		g = Number.parseInt(hex.substr(2, 2), 16);
+		b = Number.parseInt(hex.substr(4, 2), 16);
+	} else {
+		return true; // По умолчанию возвращаем true для неизвестного формата
+	}
+	
+	// Вычисление яркости по формуле YIQ
+	const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+	
+	// Если YIQ > 128, то цвет считается светлым
+	return yiq > 128;
 }
