@@ -11,7 +11,6 @@ interface InstructionViewerProps {
 	instructions: InstructionStep[];
 	currentStep: number;
 	onStepChange: (step: number) => void;
-	visibleParts: Record<string, boolean>;
 	onVisibilityChange: (parts: Record<string, boolean>) => void;
 }
 
@@ -19,7 +18,6 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	instructions,
 	currentStep,
 	onStepChange,
-	visibleParts,
 	onVisibilityChange,
 }) => {
 	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">(

@@ -113,7 +113,7 @@ const Widget = ({
 		const handleResize = () => {
 			if (menuRef.current) {
 				setPosition((prev) => ({
-					x: Math.min(prev.x, window.innerWidth - menuRef.current.offsetWidth),
+					x: Math.min(prev.x, window.innerWidth - (menuRef.current?.offsetWidth || 320)),
 					y: Math.min(prev.y, window.innerHeight - 40),
 				}));
 
