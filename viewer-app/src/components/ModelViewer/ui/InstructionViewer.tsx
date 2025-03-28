@@ -14,6 +14,7 @@ import {
 	IoVolumeHighOutline,
 	IoVolumeMuteOutline,
 } from "react-icons/io5";
+import { isLightColor } from "../utils";
 
 interface InstructionStep {
 	id: number;
@@ -130,12 +131,10 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		return newVisibleParts;
 	};
 
-	// Обработчик переключения режима просмотра
 	const handleViewModeChange = (mode: "cumulative" | "isolated") => {
 		setViewMode(mode);
 	};
 
-	// Обработчик переключения видимости отдельной детали
 	const togglePartVisibility = useCallback(
 		(partName: string) => {
 			const newVisibility = {
@@ -148,7 +147,6 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		[visibleParts, onVisibilityChange],
 	);
 
-	// Обработчик нажатия клавиш для переключения видимости деталей
 	const handlePartKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLButtonElement>, partName: string) => {
 			if (e.key === "Enter" || e.key === " ") {
@@ -159,7 +157,6 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		[togglePartVisibility],
 	);
 
-	// Обработчик изменения цвета подсветки
 	const handleHighlightColorChange = (
 		e: React.ChangeEvent<HTMLInputElement>,
 	) => {
@@ -168,7 +165,6 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		}
 	};
 
-	// Обработчик переключения подсветки
 	const handleHighlightToggle = () => {
 		if (onHighlightEnabledChange) {
 			onHighlightEnabledChange(!highlightEnabled);
@@ -217,22 +213,10 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		return instructions[currentStep - 1]?.parts || [];
 	};
 
-	// Получение прогресса сборки в процентах
 	const getProgressPercentage = () => {
 		if (currentStep === 0) return 0;
 		return Math.min(100, Math.floor((currentStep / instructions.length) * 100));
 	};
-
-	// Проверяем, светлый ли цвет подсветки (для контрастного текста)
-	const isLightColor = (color: string) => {
-		const hex = color.substring(1);
-		const r = Number.parseInt(hex.substr(0, 2), 16);
-		const g = Number.parseInt(hex.substr(2, 2), 16);
-		const b = Number.parseInt(hex.substr(4, 2), 16);
-		const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-		return yiq > 128;
-	};
-
 	// Функция для озвучивания текущего шага
 	const speakCurrentStep = () => {
 		if (!window.speechSynthesis) {
@@ -254,45 +238,47 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		} else {
 			const stepName = instructions[currentStep - 1]?.name || "";
 			const stepDescription = instructions[currentStep - 1]?.description || "";
-			
+
 			// Добавляем паузы и подсказки для улучшения произношения
 			textToSpeak = `Шаг ${currentStep} из ${instructions.length}. ${stepName.split(" ").join(". ")}`;
-			
+
 			if (stepDescription) {
 				// Разбиваем длинные предложения на фразы с паузами
-				const phrases = stepDescription.split(/[,.;:]/).filter(phrase => phrase.trim());
+				const phrases = stepDescription
+					.split(/[,.;:]/)
+					.filter((phrase) => phrase.trim());
 				textToSpeak += `. ${phrases.join(". ")}`;
 			}
 		}
 
 		// Создаем несколько utterance для разных частей текста
 		// для более естественного произношения
-		const sentences = textToSpeak.split(". ").filter(s => s.trim());
-		
+		const sentences = textToSpeak.split(". ").filter((s) => s.trim());
+
 		// Очистим очередь речи
 		window.speechSynthesis.cancel();
-		
+
 		// Создаем очередь фраз для последовательного произношения
 		for (let i = 0; i < sentences.length; i++) {
 			const utterance = new SpeechSynthesisUtterance(sentences[i]);
 			utterance.lang = "ru-RU";
 			utterance.rate = 0.9; // Замедляем немного для лучшего произношения
 			utterance.pitch = 1.0;
-			
+
 			// Только для последней фразы устанавливаем обработчик окончания
 			if (i === sentences.length - 1) {
 				utterance.onend = () => {
 					setIsSpeaking(false);
 				};
-				
+
 				utterance.onerror = () => {
 					setIsSpeaking(false);
 				};
 			}
-			
+
 			window.speechSynthesis.speak(utterance);
 		}
-		
+
 		setIsSpeaking(true);
 	};
 
@@ -311,8 +297,8 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 							type="button"
 							onClick={speakCurrentStep}
 							className={`p-2 rounded-full ${
-								isSpeaking 
-									? "bg-red-100 text-red-800" 
+								isSpeaking
+									? "bg-red-100 text-red-800"
 									: "bg-gray-100 hover:bg-gray-200 text-gray-700"
 							} transition-colors`}
 							title={isSpeaking ? "Остановить озвучку" : "Озвучить этап"}
