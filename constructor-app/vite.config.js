@@ -5,20 +5,9 @@ import tailwindcssPlugin from "@tailwindcss/vite";
 export default defineConfig({
 	plugins: [react(), tailwindcssPlugin()],
 	build: {
-		watch: false,
 		sourcemap: "hidden",
 		minify: "esbuild",
 		target: "esnext",
 		outDir: "build",
-		rollupOptions: {
-			output: {
-				manualChunks: {
-					vendor: ["react", "react-dom"],
-				},
-				chunkFileNames: "assets/js/[name]-[hash].js",
-				entryFileNames: "assets/js/[name]-[hash].js",
-				assetFileNames: "assets/[ext]/[name]-[hash].[ext]",
-			},
-		},
 	},
 });
