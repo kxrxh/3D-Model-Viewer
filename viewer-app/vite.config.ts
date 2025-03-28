@@ -13,10 +13,10 @@ export default defineConfig({
 		rollupOptions: {
 			output: {
 				manualChunks: {
-					vendor: ['react', 'react-dom'],
-					three: ['three', 'three-stdlib']
-				}
-			}
-		}
+					vendor: ["react", "react-dom"],
+					three: ["three", "three-stdlib"],
+				},
+			},
+		},
 	},
 });

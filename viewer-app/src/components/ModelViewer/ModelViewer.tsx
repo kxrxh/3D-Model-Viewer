@@ -1,4 +1,4 @@
-import React, {
+import {
 	useRef,
 	useState,
 	useCallback,
@@ -6,6 +6,7 @@ import React, {
 	useMemo,
 	Suspense,
 } from "react";
+import type React from "react";
 import { Canvas } from "@react-three/fiber";
 import {
 	OrbitControls,
@@ -18,332 +19,32 @@ import {
 	PerformanceMonitor,
 } from "@react-three/drei";
 import * as THREE from "three";
-import {
-	LoadingSpinner,
-	Toast,
-	ToastContainer,
-	type ToastType,
-} from "../common";
+import { LoadingSpinner, Toast, ToastContainer } from "../common";
 import { Model } from "./core";
 import PartFocusController from "./controls/PartFocusController";
 import { InstructionViewer, Widget } from "./ui";
 import StartPage from "./StartPage";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import JSZip from "jszip";
-// Import react-icons
-import { FiRefreshCw } from "react-icons/fi";
-import { VscGraph } from "react-icons/vsc";
-import { MdKeyboardArrowDown, MdKeyboardArrowLeft } from "react-icons/md";
+import { MdKeyboardArrowLeft } from "react-icons/md";
+
+import { useModelState, usePerformanceProfiles, useToast } from "./hooks";
+
+import { ControlPanel, PerformanceProfileSelector } from "./components";
+
+import { DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET } from "./utils";
+
+import type { InstructionStep } from "./types";
 
 // Performance settings
 THREE.Cache.enabled = true;
-const DEFAULT_CAMERA_POSITION: [number, number, number] = [5, 5, 5];
-const DEFAULT_CAMERA_TARGET: [number, number, number] = [0, 0, 0];
-const MIN_DPR = 1;
-const MAX_DPR = window.devicePixelRatio || 2;
 
-// Check if deviceMemory is available
-const hasDeviceMemory = "deviceMemory" in navigator;
-const getDeviceMemory = (): number => {
-	return hasDeviceMemory
-		? (navigator as unknown as { deviceMemory: number }).deviceMemory
-		: 4;
-};
-
-// Performance profiles for different rendering quality
-const PERFORMANCE_PROFILES = {
-	high: {
-		name: "Высокое качество",
-		dpr: Math.min(2.5, window.devicePixelRatio || 1.5),
-		shadows: true,
-		shadowMapSize: 2048,
-		antialias: true,
-		physicallyCorrectLights: true,
-		environment: "city",
-		adaptiveDpr: false,
-		gl: {
-			powerPreference: "high-performance",
-			precision: "highp",
-			antialias: true,
-			alpha: true,
-		},
-	},
-	medium: {
-		name: "Среднее качество",
-		dpr: Math.min(1.25, window.devicePixelRatio || 1),
-		shadows: true,
-		shadowMapSize: 1024,
-		antialias: true,
-		physicallyCorrectLights: true,
-		environment: "city",
-		adaptiveDpr: false,
-		gl: {
-			powerPreference: "high-performance",
-			precision: "mediump",
-			antialias: true,
-		},
-	},
-	low: {
-		name: "Низкое качество",
-		dpr: 0.75,
-		shadows: false,
-		antialias: false,
-		physicallyCorrectLights: false,
-		environment: "city",
-		adaptiveDpr: false,
-		pixelRatio: 0.75,
-		gl: {
-			powerPreference: "low-power",
-			precision: "lowp",
-			antialias: false,
-			depth: false,
-			stencil: false,
-		},
-	},
-	auto: {
-		name: "Автоматически",
-		adaptiveDpr: true,
-		adaptivePerformance: true,
-		dpr:
-			window.devicePixelRatio > 2
-				? 1.5
-				: window.devicePixelRatio > 1
-					? window.devicePixelRatio
-					: 1,
-		shadows: navigator.hardwareConcurrency > 4,
-		shadowMapSize: navigator.hardwareConcurrency > 6 ? 1024 : 512,
-		antialias: getDeviceMemory() > 4 || navigator.hardwareConcurrency > 4,
-		physicallyCorrectLights: navigator.hardwareConcurrency > 2,
-		environment: "city",
-		regress: true,
-		gl: {
-			powerPreference: "high-performance",
-			precision: navigator.hardwareConcurrency > 4 ? "highp" : "mediump",
-			antialias: getDeviceMemory() > 4 || navigator.hardwareConcurrency > 4,
-			failIfMajorPerformanceCaveat: false,
-		},
-	},
-};
-
-// Custom hooks for better state management
-function useModelState() {
-	const [modelParts, setModelParts] = useState<Record<string, boolean>>({});
-	const [visibleParts, setVisibleParts] = useState<Record<string, boolean>>({});
-	const [currentStepParts, setCurrentStepParts] = useState<string[]>([]);
-	const [meshes, setMeshes] = useState<Record<string, THREE.Mesh>>({});
-	const [selectedParts, setSelectedParts] = useState<THREE.Mesh[]>([]);
-	const [modelUrl, setModelUrl] = useState<string | null>(null);
-	const isInitialized = useRef(false);
-
-	const resetModelState = useCallback(() => {
-		isInitialized.current = false;
-		setModelParts({});
-		setVisibleParts({});
-		setCurrentStepParts([]);
-		setMeshes({});
-		setSelectedParts([]);
-	}, []);
-
-	const handleModelLoad = useCallback((parts: Record<string, boolean>) => {
-		if (!isInitialized.current) {
-			setModelParts(parts);
-			setVisibleParts(parts);
-			isInitialized.current = true;
-		}
-	}, []);
-
-	const handlePartFound = useCallback(
-		(meshRefs: Record<string, THREE.Mesh>) => {
-			setMeshes(meshRefs);
-		},
-		[],
-	);
-
-	return {
-		modelParts,
-		visibleParts,
-		setVisibleParts,
-		currentStepParts,
-		setCurrentStepParts,
-		meshes,
-		selectedParts,
-		setSelectedParts,
-		modelUrl,
-		setModelUrl,
-		isInitialized,
-		resetModelState,
-		handleModelLoad,
-		handlePartFound,
-	};
-}
-
-function usePerformanceProfiles() {
-	const [activeProfile, setActiveProfile] = useState<string>("auto");
-	const [dpr, setDpr] = useState<number>(
-		PERFORMANCE_PROFILES.auto.dpr as number,
-	);
-
-	const adaptiveDprEnabled = useMemo(
-		() =>
-			PERFORMANCE_PROFILES[activeProfile as keyof typeof PERFORMANCE_PROFILES]
-				.adaptiveDpr === true,
-		[activeProfile],
-	);
-
-	const handlePerformanceChange = useCallback(
-		(increase: boolean) => {
-			if (adaptiveDprEnabled) {
-				setDpr((prevDpr) => {
-					if (increase) {
-						return Math.min(prevDpr + 0.25, MAX_DPR);
-					}
-					return Math.max(prevDpr - 0.25, MIN_DPR);
-				});
-			}
-		},
-		[adaptiveDprEnabled],
-	);
-
-	useEffect(() => {
-		const profile =
-			PERFORMANCE_PROFILES[activeProfile as keyof typeof PERFORMANCE_PROFILES];
-		if (profile?.dpr) {
-			setDpr(profile.dpr as number);
-		}
-	}, [activeProfile]);
-
-	return {
-		profiles: PERFORMANCE_PROFILES,
-		activeProfile,
-		setActiveProfile,
-		dpr,
-		setDpr,
-		adaptiveDprEnabled,
-		handlePerformanceChange,
-	};
-}
-
-// Toast hook for managing toast notifications
-function useToast() {
-	const [toasts, setToasts] = useState<
-		{ id: number; message: string; type: ToastType }[]
-	>([]);
-
-	const showToast = useCallback((message: string, type: ToastType = "info") => {
-		const id = Date.now();
-		setToasts((prev) => [...prev, { id, message, type }]);
-		return id;
-	}, []);
-
-	const hideToast = useCallback((id: number) => {
-		setToasts((prev) => prev.filter((toast) => toast.id !== id));
-	}, []);
-
-	return { toasts, showToast, hideToast };
-}
-
-const ControlPanel: React.FC<{
-	resetView: () => void;
-	showStats: boolean;
-	setShowStats: (show: boolean) => void;
-}> = React.memo(({ resetView, showStats, setShowStats }) => (
-	<div className="absolute top-2.5 left-2.5 flex flex-wrap gap-2.5 z-10">
-		<button
-			type="button"
-			onClick={resetView}
-			className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center gap-1.5"
-		>
-			<FiRefreshCw size={16} title="Reset View" />
-			Сбросить вид
-		</button>
-		<button
-			type="button"
-			onClick={() => setShowStats(!showStats)}
-			className={`px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center gap-1.5 ${
-				showStats ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-700"
-			}`}
-		>
-			<VscGraph size={16} title="Statistics" />
-			Статистика
-		</button>
-	</div>
-));
-
-// Add Performance Profile Selector component
-const PerformanceProfileSelector: React.FC<{
-	profiles: typeof PERFORMANCE_PROFILES;
-	activeProfile: string;
-	setActiveProfile: (profile: string) => void;
-}> = React.memo(({ profiles, activeProfile, setActiveProfile }) => {
-	const [isCollapsed, setIsCollapsed] = useState(true);
-
-	return (
-		<div className="flex flex-col bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-lg z-10 w-80">
-			<button
-				className="w-full text-sm font-medium text-gray-700 flex justify-between items-center cursor-pointer py-1"
-				onClick={() => setIsCollapsed(!isCollapsed)}
-				onKeyDown={(e) => {
-					if (e.key === "Enter" || e.key === " ") {
-						setIsCollapsed(!isCollapsed);
-					}
-				}}
-				type="button"
-			>
-				<span>Качество</span>
-				<div className="flex items-center">
-					<span className="text-xs mr-1 text-gray-500">
-						{profiles[activeProfile as keyof typeof profiles].name}
-					</span>
-					<span
-						className={`transition-transform duration-300 ${isCollapsed ? "" : "rotate-180"} inline-flex`}
-					>
-						<MdKeyboardArrowDown size={12} title="Toggle" />
-					</span>
-				</div>
-			</button>
-
-			{!isCollapsed && (
-				<div className="flex flex-col gap-0.5 mt-1 pt-1 border-t border-gray-200">
-					{Object.entries(profiles).map(([key, profile]) => (
-						<label key={key} className="relative flex items-center">
-							<input
-								type="radio"
-								value={key}
-								checked={activeProfile === key}
-								onChange={() => setActiveProfile(key)}
-								className="sr-only peer"
-							/>
-							<span className="px-2 py-1 rounded cursor-pointer text-xs font-medium w-full text-left transition-all duration-200 peer-checked:bg-red-700 peer-checked:text-white hover:bg-gray-200 peer-checked:hover:bg-red-800 flex justify-between">
-								<span>{profile.name}</span>
-								{key === "auto" && (
-									<span className="text-xs opacity-70 self-center ml-1">
-										(А)
-									</span>
-								)}
-							</span>
-						</label>
-					))}
-				</div>
-			)}
-		</div>
-	);
-});
-
-// Main component
 export default function ModelViewer() {
-	// Use custom hooks for state management
 	const modelState = useModelState();
 	const performanceState = usePerformanceProfiles();
 	const { toasts, showToast, hideToast } = useToast();
 
 	// Add state for instructions
-	interface InstructionStep {
-		id: number;
-		name: string;
-		parts: string[];
-		description?: string;
-	}
-
 	const [instructions, setInstructions] = useState<InstructionStep[]>([]);
 	const [currentStep, setCurrentStep] = useState<number>(0);
 	const [hasInstructions, setHasInstructions] = useState<boolean>(false);
@@ -381,7 +82,6 @@ export default function ModelViewer() {
 	const controlsRef = useRef<OrbitControlsImpl>(null);
 	const sceneRef = useRef(null);
 
-	// Handle file uploads
 	const handleModelUpload = useCallback(
 		(event: React.ChangeEvent<HTMLInputElement>) => {
 			const file = event.target.files?.[0];
@@ -405,7 +105,6 @@ export default function ModelViewer() {
 		[modelUrl, resetModelState, setModelUrl],
 	);
 
-	// Обработка загрузки нескольких файлов
 	const handleMultiUpload = useCallback(
 		async (event: React.ChangeEvent<HTMLInputElement>) => {
 			const files = event.target.files;
@@ -544,7 +243,6 @@ export default function ModelViewer() {
 		[modelUrl, resetModelState, setModelUrl, showToast],
 	);
 
-	// Handle instruction file upload
 	const handleInstructionUpload = useCallback(
 		(event: React.ChangeEvent<HTMLInputElement>) => {
 			const file = event.target.files?.[0];
@@ -583,38 +281,39 @@ export default function ModelViewer() {
 			setCurrentStepParts([]);
 			return;
 		}
-		
+
 		const stepIndex = currentStep - 1;
 		if (stepIndex >= 0 && stepIndex < instructions.length) {
 			setCurrentStepParts(instructions[stepIndex].parts);
 		}
 	}, [currentStep, instructions, setCurrentStepParts]);
 
-	// Handle changes to visible parts based on instructions
 	const handleVisibilityChange = useCallback(
 		(newVisibleParts: Record<string, boolean>) => {
-			// Completely replace the visible parts instead of merging
 			setVisibleParts(newVisibleParts);
 		},
 		[setVisibleParts],
 	);
 
-	// Обработчик изменения цвета подсветки
 	const handleHighlightColorChange = useCallback((color: string) => {
 		setHighlightColor(color);
 	}, []);
 
-	// Обработчик включения/выключения подсветки
-	const handleHighlightEnabledChange = useCallback((enabled: boolean) => {
-		console.log("Изменение состояния подсветки:", enabled ? "включена" : "выключена");
-		setHighlightEnabled(enabled);
-		showToast(
-			`Подсветка деталей ${enabled ? "включена" : "выключена"}`, 
-			enabled ? "success" : "info"
-		);
-	}, [showToast]);
+	const handleHighlightEnabledChange = useCallback(
+		(enabled: boolean) => {
+			console.log(
+				"Изменение состояния подсветки:",
+				enabled ? "включена" : "выключена",
+			);
+			setHighlightEnabled(enabled);
+			showToast(
+				`Подсветка деталей ${enabled ? "включена" : "выключена"}`,
+				enabled ? "success" : "info",
+			);
+		},
+		[showToast],
+	);
 
-	// Reset the view and camera
 	const resetView = useCallback(() => {
 		setSelectedParts([]);
 		if (controlsRef.current) {
@@ -629,7 +328,7 @@ export default function ModelViewer() {
 	useEffect(() => {
 		if (modelParts && Object.keys(modelParts).length > 0) {
 			setIsLoading(false);
-			
+
 			// Initialize with all parts visible if we're at step 0
 			if (currentStep === 0) {
 				const initialVisibleParts: Record<string, boolean> = {};
@@ -648,7 +347,6 @@ export default function ModelViewer() {
 		};
 	}, [modelUrl]);
 
-	// Memoize the 3D scene to prevent unnecessary re-renders
 	const Scene3D = useMemo(
 		() => (
 			<Canvas
@@ -770,7 +468,7 @@ export default function ModelViewer() {
 
 	// Determine if we should show the viewer or uploader
 	const showViewer = hasModel && modelUrl && hasInstructions;
-	
+
 	return (
 		<div className="w-full h-screen relative bg-gradient-to-br from-slate-100 to-slate-200">
 			{!showViewer && (
@@ -800,7 +498,7 @@ export default function ModelViewer() {
 							setActiveProfile={setActiveProfile}
 						/>
 					</div>
-					
+
 					{hasInstructions && instructions.length > 0 && (
 						<Widget
 							title="Инструкция по сборке"
@@ -856,24 +554,3 @@ export default function ModelViewer() {
 }
 
 // Функция для определения, является ли цвет светлым (для выбора контрастного текста)
-function isLightColor(color: string): boolean {
-	// Преобразование цвета в формат RGB
-	let r = 0;
-	let g = 0;
-	let b = 0;
-	
-	if (color.startsWith('#')) {
-		const hex = color.substring(1);
-		r = Number.parseInt(hex.substr(0, 2), 16);
-		g = Number.parseInt(hex.substr(2, 2), 16);
-		b = Number.parseInt(hex.substr(4, 2), 16);
-	} else {
-		return true; // По умолчанию возвращаем true для неизвестного формата
-	}
-	
-	// Вычисление яркости по формуле YIQ
-	const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-	
-	// Если YIQ > 128, то цвет считается светлым
-	return yiq > 128;
-}

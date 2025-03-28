@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import type { KeyboardEvent } from "react";
-import { 
-	IoChevronBackOutline, 
-	IoChevronForwardOutline, 
-	IoEyeOutline, 
+import {
+	IoChevronBackOutline,
+	IoChevronForwardOutline,
+	IoEyeOutline,
 	IoEyeOffOutline,
 	IoLayersOutline,
 	IoInformationCircleOutline,
 	IoCheckmarkCircleOutline,
 	IoSettingsOutline,
 	IoColorPaletteOutline,
-	IoColorWandOutline
+	IoColorWandOutline,
 } from "react-icons/io5";
 
 interface InstructionStep {
@@ -39,9 +39,11 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	highlightEnabled = true,
 	onHighlightEnabledChange,
 	highlightColor = "#f87171",
-	onHighlightColorChange
+	onHighlightColorChange,
 }) => {
-	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">("cumulative");
+	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">(
+		"cumulative",
+	);
 	const [expanded, setExpanded] = useState(false);
 	const [visibleParts, setVisibleParts] = useState<Record<string, boolean>>({});
 	const [showSettings, setShowSettings] = useState(false);
@@ -68,16 +70,19 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	};
 
 	// Обновляет видимость деталей в зависимости от текущего шага и режима просмотра
-	const calculateVisibleParts = (stepIndex: number, mode: "cumulative" | "isolated") => {
+	const calculateVisibleParts = (
+		stepIndex: number,
+		mode: "cumulative" | "isolated",
+	) => {
 		const newVisibleParts: Record<string, boolean> = {};
-		
+
 		const allPartNames = new Set<string>();
 		for (const step of instructions) {
 			for (const part of step.parts) {
 				allPartNames.add(part);
 			}
 		}
-		
+
 		// Шаг 0 показывает полную модель независимо от режима
 		if (stepIndex === 0) {
 			for (const part of allPartNames) {
@@ -90,7 +95,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 			}
 
 			const actualStepIndex = stepIndex - 1;
-			
+
 			if (mode === "cumulative") {
 				// Кумулятивный режим: показываем все детали до текущего шага включительно
 				for (let i = 0; i <= actualStepIndex; i++) {
@@ -109,7 +114,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 				}
 			}
 		}
-		
+
 		return newVisibleParts;
 	};
 
@@ -119,25 +124,33 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	};
 
 	// Обработчик переключения видимости отдельной детали
-	const togglePartVisibility = useCallback((partName: string) => {
-		const newVisibility = {
-			...visibleParts,
-			[partName]: !visibleParts[partName]
-		};
-		setVisibleParts(newVisibility);
-		onVisibilityChange(newVisibility);
-	}, [visibleParts, onVisibilityChange]);
+	const togglePartVisibility = useCallback(
+		(partName: string) => {
+			const newVisibility = {
+				...visibleParts,
+				[partName]: !visibleParts[partName],
+			};
+			setVisibleParts(newVisibility);
+			onVisibilityChange(newVisibility);
+		},
+		[visibleParts, onVisibilityChange],
+	);
 
 	// Обработчик нажатия клавиш для переключения видимости деталей
-	const handlePartKeyDown = useCallback((e: KeyboardEvent<HTMLButtonElement>, partName: string) => {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			togglePartVisibility(partName);
-		}
-	}, [togglePartVisibility]);
+	const handlePartKeyDown = useCallback(
+		(e: KeyboardEvent<HTMLButtonElement>, partName: string) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				togglePartVisibility(partName);
+			}
+		},
+		[togglePartVisibility],
+	);
 
 	// Обработчик изменения цвета подсветки
-	const handleHighlightColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleHighlightColorChange = (
+		e: React.ChangeEvent<HTMLInputElement>,
+	) => {
 		if (onHighlightColorChange) {
 			onHighlightColorChange(e.target.value);
 		}
@@ -204,7 +217,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		const r = Number.parseInt(hex.substr(0, 2), 16);
 		const g = Number.parseInt(hex.substr(2, 2), 16);
 		const b = Number.parseInt(hex.substr(4, 2), 16);
-		const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+		const yiq = (r * 299 + g * 587 + b * 114) / 1000;
 		return yiq > 128;
 	};
 
@@ -214,9 +227,11 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 			<div className="flex flex-col mb-5">
 				<div className="flex justify-between items-center mb-3">
 					<span className="text-base font-medium bg-red-100 text-red-800 px-4 py-1.5 rounded-full">
-						{currentStep === 0 ? "Обзор" : `Шаг ${currentStep}/${instructions.length}`}
+						{currentStep === 0
+							? "Обзор"
+							: `Шаг ${currentStep}/${instructions.length}`}
 					</span>
-					<button 
+					<button
 						type="button"
 						onClick={() => setShowSettings(!showSettings)}
 						className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center gap-1.5 transition-colors"
@@ -225,7 +240,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 						<span className="text-sm">Настройки</span>
 					</button>
 				</div>
-				
+
 				{/* Настройки подсветки */}
 				{showSettings && (
 					<div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
@@ -233,22 +248,33 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 							<IoColorWandOutline size={18} />
 							Настройки подсветки
 						</h4>
-						
+
 						<div className="space-y-3">
 							{/* Включение/отключение подсветки */}
 							<div className="flex items-center justify-between">
-								<label htmlFor="highlight-toggle" className="text-sm text-gray-700 flex items-center gap-1.5 cursor-pointer">
-									<IoColorPaletteOutline size={16} className={highlightEnabled ? "text-red-600" : "text-gray-500"} />
+								<label
+									htmlFor="highlight-toggle"
+									className="text-sm text-gray-700 flex items-center gap-1.5 cursor-pointer"
+								>
+									<IoColorPaletteOutline
+										size={16}
+										className={
+											highlightEnabled ? "text-red-600" : "text-gray-500"
+										}
+									/>
 									Подсветка деталей
 								</label>
 								<div className="flex items-center gap-1.5">
 									<span className="text-xs font-medium text-gray-500">
 										{highlightEnabled ? "Вкл" : "Выкл"}
 									</span>
-									<label htmlFor="highlight-toggle" className="relative inline-block w-10 align-middle select-none cursor-pointer">
-										<input 
-											type="checkbox" 
-											id="highlight-toggle" 
+									<label
+										htmlFor="highlight-toggle"
+										className="relative inline-block w-10 align-middle select-none cursor-pointer"
+									>
+										<input
+											type="checkbox"
+											id="highlight-toggle"
 											checked={highlightEnabled}
 											onChange={handleHighlightToggle}
 											className="sr-only peer"
@@ -257,26 +283,29 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 									</label>
 								</div>
 							</div>
-							
+
 							{/* Выбор цвета подсветки */}
 							{highlightEnabled && (
 								<div className="flex items-center gap-3">
-									<label htmlFor="highlight-color" className="text-sm text-gray-700 whitespace-nowrap">
+									<label
+										htmlFor="highlight-color"
+										className="text-sm text-gray-700 whitespace-nowrap"
+									>
 										Цвет:
 									</label>
 									<div className="flex items-center flex-1 gap-2">
-										<input 
-											type="color" 
-											id="highlight-color" 
+										<input
+											type="color"
+											id="highlight-color"
 											value={highlightColor}
 											onChange={handleHighlightColorChange}
 											className="h-8 w-8 rounded border-0 cursor-pointer"
 										/>
-										<div 
+										<div
 											className="h-8 px-3 flex-1 rounded flex items-center justify-center text-sm font-medium"
-											style={{ 
-												backgroundColor: highlightColor, 
-												color: isLightColor(highlightColor) ? '#000' : '#fff' 
+											style={{
+												backgroundColor: highlightColor,
+												color: isLightColor(highlightColor) ? "#000" : "#fff",
 											}}
 										>
 											{highlightColor}
@@ -287,21 +316,22 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 						</div>
 					</div>
 				)}
-				
+
 				{/* Прогресс-бар */}
 				<div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-					<div 
-						className="bg-red-700 h-3 rounded-full transition-all duration-500 ease-in-out" 
-						style={{ width: `${getProgressPercentage()}%` }} 
+					<div
+						className="bg-red-700 h-3 rounded-full transition-all duration-500 ease-in-out"
+						style={{ width: `${getProgressPercentage()}%` }}
 					/>
 				</div>
-				
+
 				{/* Название шага */}
 				<div className="flex justify-between items-center">
 					<h3 className="font-semibold text-lg">{renderStepTitle()}</h3>
 					<div className="text-sm text-gray-600 flex items-center">
 						<IoLayersOutline className="mr-1.5" size={18} />
-						{getCurrentPartCount()} {getCurrentPartCount() === 1 ? 'деталь' : 'деталей'}
+						{getCurrentPartCount()}{" "}
+						{getCurrentPartCount() === 1 ? "деталь" : "деталей"}
 					</div>
 				</div>
 			</div>
@@ -335,14 +365,18 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 							Изолированно
 						</button>
 					</div>
-					
+
 					<button
 						type="button"
 						onClick={() => setExpanded(!expanded)}
 						className="text-sm text-gray-600 flex items-center hover:text-red-700 transition-colors bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200"
 					>
 						{expanded ? "Скрыть детали" : "Показать детали"}
-						{expanded ? <IoEyeOffOutline className="ml-2" size={18} /> : <IoEyeOutline className="ml-2" size={18} />}
+						{expanded ? (
+							<IoEyeOffOutline className="ml-2" size={18} />
+						) : (
+							<IoEyeOutline className="ml-2" size={18} />
+						)}
 					</button>
 				</div>
 			)}
@@ -350,7 +384,10 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 			{/* Описание шага */}
 			{getCurrentDescription() && (
 				<div className="mb-5 bg-gray-50 border border-gray-200 rounded-lg p-4 flex gap-3">
-					<IoInformationCircleOutline className="text-gray-500 flex-shrink-0 mt-0.5" size={20} />
+					<IoInformationCircleOutline
+						className="text-gray-500 flex-shrink-0 mt-0.5"
+						size={20}
+					/>
 					<div className="text-sm text-gray-700">{getCurrentDescription()}</div>
 				</div>
 			)}
@@ -363,19 +400,29 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 					</h4>
 					<div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 pb-1">
 						{getCurrentParts().map((part) => (
-							<button 
+							<button
 								key={part}
 								type="button"
 								className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all text-left
-									${visibleParts[part] 
-										? "bg-green-50 border-green-200 text-green-800" 
-										: "bg-gray-50 border-gray-200 text-gray-800 opacity-60"}`}
+									${
+										visibleParts[part]
+											? "bg-green-50 border-green-200 text-green-800"
+											: "bg-gray-50 border-gray-200 text-gray-800 opacity-60"
+									}`}
 								onClick={() => togglePartVisibility(part)}
 								onKeyDown={(e) => handlePartKeyDown(e, part)}
 							>
-								{visibleParts[part] 
-									? <IoEyeOutline className="text-green-600 flex-shrink-0" size={18} /> 
-									: <IoEyeOffOutline className="text-gray-500 flex-shrink-0" size={18} />}
+								{visibleParts[part] ? (
+									<IoEyeOutline
+										className="text-green-600 flex-shrink-0"
+										size={18}
+									/>
+								) : (
+									<IoEyeOffOutline
+										className="text-gray-500 flex-shrink-0"
+										size={18}
+									/>
+								)}
 								<span className="text-sm truncate flex-1" title={part}>
 									{part}
 								</span>
@@ -405,14 +452,14 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 					<div className="hidden sm:flex items-center">
 						<span className="mx-2 text-xs font-medium text-gray-500">
 							{instructions.map((step) => (
-								<span 
+								<span
 									key={`step-${step.id}`}
 									className={`inline-block w-2.5 h-2.5 mx-0.5 rounded-full ${
-										step.id < currentStep 
-											? 'bg-green-500' 
-											: step.id === currentStep 
-												? 'bg-red-500' 
-												: 'bg-gray-300'
+										step.id < currentStep
+											? "bg-green-500"
+											: step.id === currentStep
+												? "bg-red-500"
+												: "bg-gray-300"
 									}`}
 								/>
 							))}

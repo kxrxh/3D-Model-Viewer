@@ -12,19 +12,21 @@ interface ModelProps {
 	onPartFound: (meshRefs: Record<string, THREE.Mesh>) => void;
 }
 
-function Model({ 
-	url, 
-	visibleParts, 
-	currentStepParts = [], 
-	highlightColor = "#f87171", 
+function Model({
+	url,
+	visibleParts,
+	currentStepParts = [],
+	highlightColor = "#f87171",
 	highlightEnabled = true,
-	onLoad, 
-	onPartFound 
+	onLoad,
+	onPartFound,
 }: ModelProps) {
 	const { scene } = useGLTF(url, true);
 	const initialized = useRef(false);
 	const meshToPath = useRef<Record<string, string>>({});
-	const originalMaterials = useRef<Map<THREE.Mesh, THREE.Material | THREE.Material[]>>(new Map());
+	const originalMaterials = useRef<
+		Map<THREE.Mesh, THREE.Material | THREE.Material[]>
+	>(new Map());
 
 	// Apply material and geometry settings to meshes
 	useEffect(() => {
@@ -34,7 +36,7 @@ function Model({
 				if (!originalMaterials.current.has(child)) {
 					originalMaterials.current.set(child, child.material.clone());
 				}
-				
+
 				child.material.side = THREE.DoubleSide;
 				child.material.depthWrite = true;
 				child.material.depthTest = true;
@@ -104,37 +106,41 @@ function Model({
 	useEffect(() => {
 		// Преобразуем цвет из HEX в THREE.Color
 		const highlightThreeColor = new THREE.Color(highlightColor);
-		
+
 		scene.traverse((child) => {
 			if (child instanceof THREE.Mesh) {
 				const fullPath = meshToPath.current[child.uuid];
 				if (fullPath) {
 					// Устанавливаем видимость на основе visibleParts
 					child.visible = visibleParts[fullPath] !== false;
-					
+
 					if (child.visible) {
 						// Проверяем, является ли деталь частью текущего шага
 						const isCurrentStepPart = currentStepParts.includes(fullPath);
-						
+
 						// Получаем оригинальный материал
 						const originalMaterial = originalMaterials.current.get(child);
-						
+
 						if (isCurrentStepPart && highlightEnabled && originalMaterial) {
 							// Применяем подсветку для деталей текущего шага
 							// Клонируем оригинальный материал для безопасного изменения
 							if (Array.isArray(child.material)) {
 								// Для meshes с несколькими материалами
-								child.material = child.material.map(mat => {
+								child.material = child.material.map((mat) => {
 									const highlightedMaterial = mat.clone();
 									highlightedMaterial.color = highlightThreeColor;
-									highlightedMaterial.emissive = highlightThreeColor.clone().multiplyScalar(0.2);
+									highlightedMaterial.emissive = highlightThreeColor
+										.clone()
+										.multiplyScalar(0.2);
 									return highlightedMaterial;
 								});
 							} else {
 								// Для meshes с одним материалом
 								const highlightedMaterial = child.material.clone();
 								highlightedMaterial.color = highlightThreeColor;
-								highlightedMaterial.emissive = highlightThreeColor.clone().multiplyScalar(0.2);
+								highlightedMaterial.emissive = highlightThreeColor
+									.clone()
+									.multiplyScalar(0.2);
 								child.material = highlightedMaterial;
 							}
 						} else if (originalMaterial) {
@@ -142,7 +148,7 @@ function Model({
 							// или если подсветка отключена
 							if (Array.isArray(originalMaterial)) {
 								// Для meshes с несколькими материалами
-								child.material = originalMaterial.map(mat => mat.clone());
+								child.material = originalMaterial.map((mat) => mat.clone());
 							} else {
 								// Для meshes с одним материалом
 								child.material = originalMaterial.clone();
