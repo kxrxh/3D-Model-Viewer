@@ -9,5 +9,14 @@ export default defineConfig({
 		minify: "esbuild",
 		target: "esnext",
 		outDir: "build",
+		chunkSizeWarningLimit: 1000,
+		rollupOptions: {
+			output: {
+				manualChunks: {
+					vendor: ['react', 'react-dom'],
+					three: ['three', 'three-stdlib']
+				}
+			}
+		}
 	},
 });
