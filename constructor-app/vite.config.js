@@ -19,6 +19,7 @@ export default defineConfig({
 		target: "esnext",
 		cssCodeSplit: true,
 		reportCompressedSize: false,
+		outDir: "build",
 		chunkSizeWarningLimit: 1000,
 		emptyOutDir: true,
 		assetsInlineLimit: 4096,
