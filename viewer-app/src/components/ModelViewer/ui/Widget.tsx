@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type ReactNode } from "react";
+import { IoChevronUpOutline, IoChevronDownOutline } from "react-icons/io5";
 
 interface WidgetProps {
 	children: ReactNode;
@@ -15,9 +16,9 @@ const Widget = ({
 	children,
 	title = "",
 	initialPosition = { x: 20, y: 20 },
-	width = 320,
 	minHeight = 200,
 	minWidth = 200,
+	width,
 	isCollapsible = true,
 	className = "",
 }: WidgetProps) => {
@@ -26,7 +27,7 @@ const Widget = ({
 	const [isResizing, setIsResizing] = useState(false);
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-	const [currentWidth, setCurrentWidth] = useState(width);
+	const [currentWidth, setCurrentWidth] = useState(width || minWidth);
 	const menuRef = useRef<HTMLDivElement>(null);
 	const headerRef = useRef<HTMLDivElement>(null);
 	const resizeHandleRef = useRef<HTMLDivElement>(null);
@@ -79,7 +80,7 @@ const Widget = ({
 				const newX = Math.max(
 					0,
 					Math.min(
-						window.innerWidth - (menuRef.current.offsetWidth || 320),
+						window.innerWidth - (menuRef.current.offsetWidth || minWidth),
 						e.clientX - dragOffset.x,
 					),
 				);
@@ -113,7 +114,10 @@ const Widget = ({
 		const handleResize = () => {
 			if (menuRef.current) {
 				setPosition((prev) => ({
-					x: Math.min(prev.x, window.innerWidth - (menuRef.current?.offsetWidth || 320)),
+					x: Math.min(
+						prev.x,
+						window.innerWidth - (menuRef.current?.offsetWidth || minWidth),
+					),
 					y: Math.min(prev.y, window.innerHeight - 40),
 				}));
 
@@ -126,7 +130,7 @@ const Widget = ({
 
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
-	}, [position.x]);
+	}, [position.x, minWidth]);
 
 	return (
 		<div
@@ -161,21 +165,11 @@ const Widget = ({
 								className="p-1 rounded-full hover:bg-red-600 transition-colors"
 								aria-label={isCollapsed ? "Expand" : "Collapse"}
 							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									className="h-4 w-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									aria-hidden="true"
-								>
-									<path
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										strokeWidth={2}
-										d={isCollapsed ? "M19 9l-7 7-7-7" : "M5 15l7-7 7 7"}
-									/>
-								</svg>
+								{isCollapsed ? (
+									<IoChevronDownOutline className="h-4 w-4" />
+								) : (
+									<IoChevronUpOutline className="h-4 w-4" />
+								)}
 							</button>
 						)}
 					</div>

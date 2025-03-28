@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { IoChevronBackOutline, IoChevronForwardOutline } from "react-icons/io5";
 
 interface InstructionStep {
 	id: number;
@@ -24,52 +25,100 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		"cumulative",
 	);
 
-	// Handle changing to the next step
+	// Обновляем видимость при изменении шага или режима просмотра
+	useEffect(() => {
+		if (instructions && instructions.length > 0) {
+			updateVisibleParts(currentStep, viewMode);
+		}
+	}, [instructions, currentStep, viewMode]);
+
 	const handleNextStep = () => {
-		if (currentStep < instructions.length - 1) {
+		if (currentStep < instructions.length) {
 			onStepChange(currentStep + 1);
-			updateVisibleParts(currentStep + 1);
 		}
 	};
 
-	// Handle changing to the previous step
 	const handlePrevStep = () => {
 		if (currentStep > 0) {
 			onStepChange(currentStep - 1);
-			updateVisibleParts(currentStep - 1);
 		}
 	};
 
-	// Update visible parts based on the current step and view mode
-	const updateVisibleParts = (stepIndex: number) => {
+	// Обновляет видимость деталей в зависимости от текущего шага и режима просмотра
+	const updateVisibleParts = (stepIndex: number, mode: "cumulative" | "isolated") => {
 		const newVisibleParts: Record<string, boolean> = {};
+		
+		const allPartNames = new Set<string>();
+		for (const step of instructions) {
+			for (const part of step.parts) {
+				allPartNames.add(part);
+			}
+		}
+		
+		// Шаг 0 показывает полную модель независимо от режима
+		if (stepIndex === 0) {
+			for (const part of allPartNames) {
+				newVisibleParts[part] = true;
+			}
+		} else {
+			// Сначала установим все детали как скрытые
+			for (const part of allPartNames) {
+				newVisibleParts[part] = false;
+			}
 
-		if (viewMode === "cumulative") {
-			// Show all parts up to and including the current step
-			for (let i = 0; i <= stepIndex; i++) {
-				if (instructions[i]?.parts) {
-					for (const part of instructions[i].parts) {
+			const actualStepIndex = stepIndex - 1;
+			
+			if (mode === "cumulative") {
+				// Кумулятивный режим: показываем все детали до текущего шага включительно
+				for (let i = 0; i <= actualStepIndex; i++) {
+					if (instructions[i]?.parts) {
+						for (const part of instructions[i].parts) {
+							newVisibleParts[part] = true;
+						}
+					}
+				}
+			} else {
+				// Изолированный режим: показываем только детали текущего шага
+				if (instructions[actualStepIndex]?.parts) {
+					for (const part of instructions[actualStepIndex].parts) {
 						newVisibleParts[part] = true;
 					}
 				}
 			}
-		} else {
-			// Only show parts from the current step
-			if (instructions[stepIndex]?.parts) {
-				for (const part of instructions[stepIndex].parts) {
-					newVisibleParts[part] = true;
-				}
-			}
 		}
-
-		// Update parts visibility
+		
+		// Применяем изменения видимости
 		onVisibilityChange(newVisibleParts);
 	};
 
-	// Handle view mode change
+	// Обработчик переключения режима просмотра
 	const handleViewModeChange = (mode: "cumulative" | "isolated") => {
 		setViewMode(mode);
-		updateVisibleParts(currentStep);
+	};
+
+	const renderStepTitle = () => {
+		if (currentStep === 0) {
+			return "Полная модель";
+		}
+		return instructions[currentStep - 1]?.name || "";
+	};
+
+	const getCurrentPartCount = () => {
+		if (currentStep === 0) {
+			let totalParts = 0;
+			for (const step of instructions) {
+				totalParts += step.parts.length;
+			}
+			return totalParts;
+		}
+		return instructions[currentStep - 1]?.parts.length || 0;
+	};
+
+	const getCurrentDescription = () => {
+		if (currentStep === 0) {
+			return "Просмотр полной модели перед началом сборки";
+		}
+		return instructions[currentStep - 1]?.description || "";
 	};
 
 	return (
@@ -84,6 +133,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 								? "bg-red-700 text-white"
 								: "bg-gray-200 text-gray-700"
 						}`}
+						disabled={currentStep === 0}
 					>
 						Накопительно
 					</button>
@@ -95,6 +145,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 								? "bg-red-700 text-white"
 								: "bg-gray-200 text-gray-700"
 						}`}
+						disabled={currentStep === 0}
 					>
 						Изолированно
 					</button>
@@ -106,17 +157,17 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 					<div className="mb-4">
 						<div className="flex justify-between items-center mb-2">
 							<h3 className="font-medium">
-								Шаг {currentStep + 1} из {instructions.length}:{" "}
-								{instructions[currentStep]?.name}
+								Шаг {currentStep} из {instructions.length}:{" "}
+								{renderStepTitle()}
 							</h3>
 							<div className="text-sm text-gray-500">
-								{instructions[currentStep]?.parts.length} деталей
+								{getCurrentPartCount()} деталей
 							</div>
 						</div>
 
-						{instructions[currentStep]?.description && (
+						{getCurrentDescription() && (
 							<div className="bg-gray-100 p-3 rounded text-sm">
-								{instructions[currentStep].description}
+								{getCurrentDescription()}
 							</div>
 						)}
 					</div>
@@ -132,50 +183,22 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 									: "bg-gray-700 text-white hover:bg-gray-800"
 							}`}
 						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								className="h-4 w-4 mr-1"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								aria-hidden="true"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M15 19l-7-7 7-7"
-								/>
-							</svg>
+							<IoChevronBackOutline className="mr-1" />
 							Назад
 						</button>
 
 						<button
 							type="button"
 							onClick={handleNextStep}
-							disabled={currentStep === instructions.length - 1}
+							disabled={currentStep === instructions.length}
 							className={`px-4 py-2 rounded flex items-center ${
-								currentStep === instructions.length - 1
+								currentStep === instructions.length
 									? "bg-gray-200 text-gray-400 cursor-not-allowed"
 									: "bg-red-700 text-white hover:bg-red-800"
 							}`}
 						>
 							Далее
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								className="h-4 w-4 ml-1"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								aria-hidden="true"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M9 5l7 7-7 7"
-								/>
-							</svg>
+							<IoChevronForwardOutline className="ml-1" />
 						</button>
 					</div>
 				</>

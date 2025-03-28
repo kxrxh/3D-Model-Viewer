@@ -341,7 +341,7 @@ export default function ModelViewer() {
 	}
 
 	const [instructions, setInstructions] = useState<InstructionStep[]>([]);
-	const [currentStep, setCurrentStep] = useState<number>(-1);
+	const [currentStep, setCurrentStep] = useState<number>(0);
 	const [hasInstructions, setHasInstructions] = useState<boolean>(false);
 	const [hasModel, setHasModel] = useState<boolean>(false);
 
@@ -509,7 +509,7 @@ export default function ModelViewer() {
 						) {
 							setInstructions(jsonData.assemblyStages);
 							setHasInstructions(true);
-							setCurrentStep(0);
+							setCurrentStep(0); // Start at step 0 (full model view)
 							console.log(
 								`Загружены инструкции: ${instructionFile?.name}, шагов: ${jsonData.assemblyStages.length}`,
 							);
@@ -572,10 +572,8 @@ export default function ModelViewer() {
 	// Handle changes to visible parts based on instructions
 	const handleVisibilityChange = useCallback(
 		(newVisibleParts: Record<string, boolean>) => {
-			setVisibleParts((prev) => ({
-				...prev,
-				...newVisibleParts,
-			}));
+			// Completely replace the visible parts instead of merging
+			setVisibleParts(newVisibleParts);
 		},
 		[setVisibleParts],
 	);
@@ -595,26 +593,17 @@ export default function ModelViewer() {
 	useEffect(() => {
 		if (modelParts && Object.keys(modelParts).length > 0) {
 			setIsLoading(false);
-
-			// If we have instructions already, validate parts
-			if (hasInstructions && instructions.length > 0) {
-				console.log("Loaded model parts:", Object.keys(modelParts));
-				console.log(
-					"Instructions parts:",
-					instructions.flatMap((step) => step.parts),
-				);
-
-				// Initialize first step visibility
-				if (currentStep >= 0 && instructions[currentStep]) {
-					const newVisibleParts: Record<string, boolean> = {};
-					for (const part of instructions[currentStep].parts) {
-						newVisibleParts[part] = true;
-					}
-					setVisibleParts(newVisibleParts);
+			
+			// Initialize with all parts visible if we're at step 0
+			if (currentStep === 0) {
+				const initialVisibleParts: Record<string, boolean> = {};
+				for (const part in modelParts) {
+					initialVisibleParts[part] = true;
 				}
+				setVisibleParts(initialVisibleParts);
 			}
 		}
-	}, [modelParts, hasInstructions, instructions, currentStep, setVisibleParts]);
+	}, [modelParts, currentStep, setVisibleParts]);
 
 	// Clean up object URL on unmount
 	useEffect(() => {
@@ -797,7 +786,6 @@ export default function ModelViewer() {
 								instructions={instructions}
 								currentStep={currentStep}
 								onStepChange={setCurrentStep}
-								visibleParts={visibleParts}
 								onVisibilityChange={handleVisibilityChange}
 							/>
 						</Widget>
@@ -811,6 +799,7 @@ export default function ModelViewer() {
 							setInstructions([]);
 							setHasInstructions(false);
 							setHasModel(false);
+							resetModelState();
 						}}
 						className="absolute bottom-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 z-10 flex items-center gap-2"
 					>
