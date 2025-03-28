@@ -22,7 +22,7 @@ import * as THREE from "three";
 import { LoadingSpinner, Toast, ToastContainer } from "../common";
 import { Model } from "./core";
 import PartFocusController from "./controls/PartFocusController";
-import { InstructionViewer, Widget } from "./ui";
+import { InstructionViewer } from "./ui";
 import StartPage from "./StartPage";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import JSZip from "jszip";
@@ -30,7 +30,7 @@ import { MdKeyboardArrowLeft } from "react-icons/md";
 
 import { useModelState, usePerformanceProfiles, useToast } from "./hooks";
 
-import { ControlPanel, PerformanceProfileSelector } from "./components";
+import { ControlPanel, PerformanceProfileSelector, Widget } from "./components";
 
 import { DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET } from "./utils";
 
