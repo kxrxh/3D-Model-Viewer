@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -106,6 +106,52 @@ function Model({
 		}
 	}, [scene, onLoad, onPartFound]);
 
+	// Функция для проверки, поддерживает ли материал цвет и эмиссию
+	const applyColorToMaterial = useCallback((
+		material: THREE.Material,
+		color: THREE.Color,
+		emissiveIntensity = 0.2
+	) => {
+		// Проверяем, является ли материал типом, поддерживающим свойство color
+		if (
+			material instanceof THREE.MeshStandardMaterial ||
+			material instanceof THREE.MeshPhongMaterial ||
+			material instanceof THREE.MeshLambertMaterial ||
+			material instanceof THREE.MeshBasicMaterial
+		) {
+			material.color.copy(color);
+
+			// Проверяем поддержку эмиссии
+			if ('emissive' in material && material.emissive instanceof THREE.Color) {
+				material.emissive.copy(color.clone().multiplyScalar(emissiveIntensity));
+			}
+		}
+		
+		// Для любого типа материала
+		if (material.transparent !== undefined) {
+			material.transparent = false;
+		}
+		if (material.opacity !== undefined) {
+			material.opacity = 1.0;
+		}
+	}, []);
+
+	// Функция для применения прозрачности к материалу
+	const applyTransparencyToMaterial = useCallback((
+		material: THREE.Material,
+		opacity: number
+	) => {
+		if (material.transparent !== undefined) {
+			material.transparent = true;
+		}
+		if (material.opacity !== undefined) {
+			material.opacity = opacity;
+		}
+		if (material.depthWrite !== undefined) {
+			material.depthWrite = true;
+		}
+	}, []);
+
 	// Update visibility and highlight current step parts
 	useEffect(() => {
 		// Преобразуем цвет из HEX в THREE.Color
@@ -140,20 +186,10 @@ function Model({
 							if (isCurrentStepPart && highlightEnabled) {
 								if (Array.isArray(newMaterial)) {
 									for (const mat of newMaterial) {
-										mat.color = highlightThreeColor;
-										mat.emissive = highlightThreeColor
-											.clone()
-											.multiplyScalar(0.2);
-										mat.opacity = 1.0; // Current step is fully opaque
-										mat.transparent = false;
+										applyColorToMaterial(mat, highlightThreeColor);
 									}
 								} else {
-									newMaterial.color = highlightThreeColor;
-									newMaterial.emissive = highlightThreeColor
-										.clone()
-										.multiplyScalar(0.2);
-									newMaterial.opacity = 1.0; // Current step is fully opaque
-									newMaterial.transparent = false;
+									applyColorToMaterial(newMaterial, highlightThreeColor);
 								}
 							}
 							// Apply transparency to previous steps if enabled
@@ -164,14 +200,10 @@ function Model({
 							) {
 								if (Array.isArray(newMaterial)) {
 									for (const mat of newMaterial) {
-										mat.transparent = true;
-										mat.opacity = previousStepsOpacity;
-										mat.depthWrite = true; // Ensure proper rendering with transparency
+										applyTransparencyToMaterial(mat, previousStepsOpacity);
 									}
 								} else {
-									newMaterial.transparent = true;
-									newMaterial.opacity = previousStepsOpacity;
-									newMaterial.depthWrite = true; // Ensure proper rendering with transparency
+									applyTransparencyToMaterial(newMaterial, previousStepsOpacity);
 								}
 							}
 
@@ -192,6 +224,8 @@ function Model({
 		previousStepsTransparency,
 		previousStepsOpacity,
 		scene,
+		applyColorToMaterial,
+		applyTransparencyToMaterial
 	]);
 
 	return <primitive object={scene} />;
