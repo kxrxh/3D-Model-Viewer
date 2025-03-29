@@ -35,7 +35,7 @@ const PartFocusController = ({
 
 			// Calculate camera position and target
 			const maxDim = Math.max(size.x, size.y, size.z);
-			const distance = maxDim * 2.5;
+			const distance = maxDim * 10.0;
 
 			// Set target to center of bounding box
 			if (

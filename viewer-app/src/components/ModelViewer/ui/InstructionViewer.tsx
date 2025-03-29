@@ -13,6 +13,10 @@ import {
 	IoColorWandOutline,
 	IoVolumeHighOutline,
 	IoVolumeMuteOutline,
+	IoRefreshOutline,
+	IoRemoveOutline,
+	IoAddOutline,
+	IoScanOutline,
 } from "react-icons/io5";
 import { isLightColor } from "../utils";
 
@@ -23,15 +27,42 @@ interface InstructionStep {
 	description?: string;
 }
 
+// Add new interface for grouped parts
+interface PartGroup {
+	name: string;
+	isGroup: true; // Always true to distinguish from other types
+	parts: (PartGroup | PartDetail)[];
+	expanded?: boolean;
+}
+
+// Add interface for part detail
+interface PartDetail {
+	originalName: string;
+	displayName: string;
+	isGroup?: false; // Always false to distinguish from groups
+}
+
+// Add toast notification type
+type ToastType = "info" | "success" | "error" | "warning";
+
 interface InstructionViewerProps {
 	instructions: InstructionStep[];
 	currentStep: number;
 	onStepChange: (step: number) => void;
 	onVisibilityChange: (parts: Record<string, boolean>) => void;
+	onPartFocus?: (partName: string) => void;
+	onStepPartsFocus?: (parts: string[]) => void;
+	showToast?: (message: string, type: ToastType) => void;
 	highlightEnabled?: boolean;
 	onHighlightEnabledChange?: (enabled: boolean) => void;
 	highlightColor?: string;
 	onHighlightColorChange?: (color: string) => void;
+	previousStepsTransparency?: boolean;
+	onPreviousStepsTransparencyChange?: (enabled: boolean) => void;
+	previousStepsOpacity?: number;
+	onPreviousStepsOpacityChange?: (opacity: number) => void;
+	autoRotationEnabled?: boolean;
+	onAutoRotationChange?: (enabled: boolean) => void;
 }
 
 const InstructionViewer: React.FC<InstructionViewerProps> = ({
@@ -39,10 +70,19 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	currentStep,
 	onStepChange,
 	onVisibilityChange,
+	onPartFocus,
+	onStepPartsFocus,
+	showToast,
 	highlightEnabled = true,
 	onHighlightEnabledChange,
 	highlightColor = "#f87171",
 	onHighlightColorChange,
+	previousStepsTransparency = true,
+	onPreviousStepsTransparencyChange,
+	previousStepsOpacity = 0.4,
+	onPreviousStepsOpacityChange,
+	autoRotationEnabled = true,
+	onAutoRotationChange,
 }) => {
 	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">(
 		"cumulative",
@@ -51,6 +91,9 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	const [visibleParts, setVisibleParts] = useState<Record<string, boolean>>({});
 	const [showSettings, setShowSettings] = useState(false);
 	const [isSpeaking, setIsSpeaking] = useState(false);
+	const [groupsExpanded, setGroupsExpanded] = useState<Record<string, boolean>>(
+		{},
+	);
 
 	// Обновляем видимость при изменении шага или режима просмотра
 	useEffect(() => {
@@ -92,6 +135,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		const allPartNames = new Set<string>();
 		for (const step of instructions) {
 			for (const part of step.parts) {
+				// Handle hierarchical part names (with '/')
 				allPartNames.add(part);
 			}
 		}
@@ -137,6 +181,8 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 
 	const togglePartVisibility = useCallback(
 		(partName: string) => {
+			// Make sure we're working with the original part name as stored in the model
+			// For hierarchical parts, this should be the full path
 			const newVisibility = {
 				...visibleParts,
 				[partName]: !visibleParts[partName],
@@ -168,6 +214,26 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	const handleHighlightToggle = () => {
 		if (onHighlightEnabledChange) {
 			onHighlightEnabledChange(!highlightEnabled);
+		}
+	};
+
+	const handlePreviousStepsTransparencyToggle = () => {
+		if (onPreviousStepsTransparencyChange) {
+			onPreviousStepsTransparencyChange(!previousStepsTransparency);
+		}
+	};
+
+	const handlePreviousStepsOpacityChange = (
+		e: React.ChangeEvent<HTMLInputElement>,
+	) => {
+		if (onPreviousStepsOpacityChange) {
+			onPreviousStepsOpacityChange(Number.parseFloat(e.target.value));
+		}
+	};
+
+	const handleAutoRotationToggle = () => {
+		if (onAutoRotationChange) {
+			onAutoRotationChange(!autoRotationEnabled);
 		}
 	};
 
@@ -282,6 +348,332 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		setIsSpeaking(true);
 	};
 
+	// Helper function to create a hierarchical structure from flat part names
+	const groupPartsByHierarchy = (parts: string[]): PartGroup => {
+		const root: PartGroup = {
+			name: "root",
+			isGroup: true,
+			parts: [],
+			expanded: true,
+		};
+
+		// Keep track of parts that are also groups to avoid duplicates
+		const groupPaths = new Set<string>();
+
+		// First pass: identify all groups
+		for (const partName of parts) {
+			const segments = partName.split("/").map((s) => s.trim());
+			if (segments.length > 1) {
+				// If this is a path with multiple segments, record all parent paths
+				for (let i = 1; i < segments.length; i++) {
+					groupPaths.add(segments.slice(0, i).join("/"));
+				}
+			}
+		}
+
+		// Second pass: create the actual hierarchy
+		for (const partName of parts) {
+			const segments = partName.split("/").map((s) => s.trim());
+			let currentLevel = root;
+
+			// Skip this part if it's already represented as a group
+			if (segments.length === 1 && groupPaths.has(partName)) {
+				continue;
+			}
+
+			// Handle all path segments except the last one (which is the actual part)
+			for (let i = 0; i < segments.length - 1; i++) {
+				const groupName = segments[i];
+				// Check if this group already exists at current level
+				let group = currentLevel.parts.find(
+					(p) => "isGroup" in p && p.isGroup && p.name === groupName,
+				) as PartGroup | undefined;
+
+				// If not, create it
+				if (!group) {
+					group = {
+						name: groupName,
+						isGroup: true,
+						parts: [],
+						expanded:
+							groupsExpanded[segments.slice(0, i + 1).join("/")] ?? true,
+					};
+					currentLevel.parts.push(group);
+				}
+
+				currentLevel = group;
+			}
+
+			// Store the original part name along with its display name (last segment)
+			const lastSegment = segments[segments.length - 1];
+			currentLevel.parts.push({
+				originalName: partName, // Keep the original full name for visibility toggling
+				displayName: lastSegment, // The display name is just the last segment
+				isGroup: false,
+			});
+		}
+
+		return root;
+	};
+
+	// Toggle group expansion state
+	const toggleGroupExpansion = (path: string) => {
+		setGroupsExpanded((prev) => ({
+			...prev,
+			[path]: !prev[path],
+		}));
+	};
+
+	// Toggle visibility for all parts in a group
+	const toggleGroupVisibility = useCallback(
+		(group: PartGroup, path: string, show: boolean) => {
+			const newVisibility = { ...visibleParts };
+
+			// Recursive function to collect all part names in a group and its subgroups
+			const collectPartsInGroup = (
+				currentGroup: PartGroup,
+				currentPath: string,
+			): string[] => {
+				let partNames: string[] = [];
+
+				for (const part of currentGroup.parts) {
+					if ("isGroup" in part && part.isGroup) {
+						// It's a subgroup, collect parts recursively
+						const subPath = currentPath
+							? `${currentPath}/${part.name}`
+							: part.name;
+						partNames = [...partNames, ...collectPartsInGroup(part, subPath)];
+					} else if ("originalName" in part) {
+						// It's a part, add its original name
+						partNames.push(part.originalName);
+					}
+				}
+
+				return partNames;
+			};
+
+			// Collect all parts in the group
+			const allParts = collectPartsInGroup(group, path);
+
+			// Update visibility for all parts
+			for (const partName of allParts) {
+				newVisibility[partName] = show;
+			}
+
+			setVisibleParts(newVisibility);
+			onVisibilityChange(newVisibility);
+		},
+		[visibleParts, onVisibilityChange],
+	);
+
+	// Determine if all parts in a group are visible, hidden, or mixed
+	const getGroupVisibilityState = useCallback(
+		(group: PartGroup, path: string): "visible" | "hidden" | "mixed" => {
+			// Recursive function to collect visibility states of all parts
+			const collectVisibilityStates = (
+				currentGroup: PartGroup,
+				currentPath: string,
+			): boolean[] => {
+				let states: boolean[] = [];
+
+				for (const part of currentGroup.parts) {
+					if ("isGroup" in part && part.isGroup) {
+						// It's a subgroup, collect states recursively
+						const subPath = currentPath
+							? `${currentPath}/${part.name}`
+							: part.name;
+						states = [...states, ...collectVisibilityStates(part, subPath)];
+					} else if ("originalName" in part) {
+						// It's a part, check its visibility
+						const isVisible =
+							visibleParts[part.originalName] !== undefined
+								? visibleParts[part.originalName]
+								: true;
+						states.push(isVisible);
+					}
+				}
+
+				return states;
+			};
+
+			const states = collectVisibilityStates(group, path);
+
+			if (states.length === 0) return "visible"; // Default to visible for empty groups
+
+			const visibleCount = states.filter((s) => s).length;
+
+			if (visibleCount === 0) return "hidden";
+			if (visibleCount === states.length) return "visible";
+			return "mixed";
+		},
+		[visibleParts],
+	);
+
+	// Recursive component to render part groups
+	const RenderPartGroup = ({
+		group,
+		path = "",
+		level = 0,
+	}: {
+		group: PartGroup;
+		path?: string;
+		level?: number;
+	}) => {
+		const currentPath = path ? `${path}/${group.name}` : group.name;
+		const isExpanded = groupsExpanded[currentPath] ?? true;
+		const groupVisibilityState =
+			group.name !== "root"
+				? getGroupVisibilityState(group, currentPath)
+				: "visible";
+
+		return (
+			<div>
+				{group.name !== "root" && (
+					<button
+						type="button"
+						onClick={() => toggleGroupExpansion(currentPath)}
+						className="flex items-center gap-3 w-full text-left px-3 py-2 h-10 rounded-lg border border-gray-200 bg-gray-100 hover:bg-gray-200 mb-2"
+					>
+						<span className="text-gray-500 flex-shrink-0">
+							{isExpanded ? (
+								<IoRemoveOutline size={18} aria-label="Collapse" />
+							) : (
+								<IoAddOutline size={18} aria-label="Expand" />
+							)}
+						</span>
+						<span
+							className="font-medium text-sm truncate flex-1"
+							title={group.name}
+						>
+							{group.name}
+						</span>
+
+						{/* Group visibility toggle */}
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								toggleGroupVisibility(
+									group,
+									currentPath,
+									groupVisibilityState !== "visible",
+								);
+							}}
+							className={`ml-1 p-1.5 rounded-full transition-colors ${
+								groupVisibilityState === "visible"
+									? "text-green-600 hover:bg-green-100"
+									: groupVisibilityState === "hidden"
+										? "text-gray-500 hover:bg-gray-200"
+										: "text-yellow-500 hover:bg-yellow-100"
+							}`}
+							title={
+								groupVisibilityState === "visible"
+									? "Скрыть все детали группы"
+									: groupVisibilityState === "hidden"
+										? "Показать все детали группы"
+										: "Часть деталей скрыта"
+							}
+						>
+							{groupVisibilityState === "visible" ? (
+								<IoEyeOutline size={18} />
+							) : groupVisibilityState === "hidden" ? (
+								<IoEyeOffOutline size={18} />
+							) : (
+								<IoEyeOutline size={18} className="opacity-50" />
+							)}
+						</button>
+					</button>
+				)}
+
+				{isExpanded && (
+					<div
+						className={`space-y-2 ${level > 0 ? "ml-3 border-l-2 border-gray-200 pl-3" : ""}`}
+					>
+						{group.parts.map((part) => {
+							// Check if this is a group
+							if ("isGroup" in part && part.isGroup) {
+								// It's a group, render it recursively
+								return (
+									<RenderPartGroup
+										key={`group-${currentPath}-${part.name}`}
+										group={part}
+										path={currentPath}
+										level={level + 1}
+									/>
+								);
+							}
+
+							// It's a part detail
+							const partDetail = part as PartDetail;
+							const originalPartName = partDetail.originalName;
+							const displayName = partDetail.displayName;
+
+							// Check if part is visible
+							const isVisible =
+								visibleParts[originalPartName] !== undefined
+									? visibleParts[originalPartName]
+									: true;
+
+							return (
+								<div 
+									key={`part-${originalPartName}`}
+									className={`flex items-center gap-2 w-full rounded-lg 
+										${isVisible
+											? "bg-green-50 border-green-200 text-green-800"
+											: "bg-gray-50 border-gray-200 text-gray-800 opacity-60"
+										} border`}
+								>
+									<button
+										type="button"
+										className="flex items-center gap-3 px-3 py-2 h-10 cursor-pointer transition-all text-left flex-1"
+										onClick={() => togglePartVisibility(originalPartName)}
+										onKeyDown={(e) => handlePartKeyDown(e, originalPartName)}
+									>
+										{isVisible ? (
+											<IoEyeOutline
+												className="text-green-600 flex-shrink-0"
+												size={18}
+											/>
+										) : (
+											<IoEyeOffOutline
+												className="text-gray-500 flex-shrink-0"
+												size={18}
+											/>
+										)}
+										<span className="text-sm truncate flex-1" title={displayName}>
+											{displayName}
+										</span>
+									</button>
+									
+									{/* Focus button - only show for visible parts */}
+									{isVisible && onPartFocus && (
+										<button
+											type="button"
+											onClick={() => onPartFocus(originalPartName)}
+											className="px-2 py-2 h-10 text-blue-600 hover:bg-blue-100 rounded-r-lg transition-colors border-l border-green-200"
+											title="Зазумиться на деталь"
+										>
+											<IoScanOutline size={18} />
+										</button>
+									)}
+								</div>
+							);
+						})}
+					</div>
+				)}
+			</div>
+		);
+	};
+
+	// Simple fallback for showToast if not provided
+	const displayToast = useCallback((message: string, type: ToastType = "info") => {
+		if (showToast) {
+			showToast(message, type);
+		} else {
+			console.log(`[${type.toUpperCase()}] ${message}`);
+		}
+	}, [showToast]);
+
 	return (
 		<div className="p-1">
 			{/* Заголовок и прогресс */}
@@ -325,7 +717,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 					<div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
 						<h4 className="font-medium text-sm mb-3 text-gray-800 flex items-center gap-1.5">
 							<IoColorWandOutline size={18} />
-							Настройки подсветки
+							Настройки отображения
 						</h4>
 
 						<div className="space-y-3">
@@ -362,6 +754,103 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 									</label>
 								</div>
 							</div>
+
+							{/* Включение/отключение прозрачности предыдущих шагов */}
+							<div className="flex items-center justify-between">
+								<label
+									htmlFor="transparency-toggle"
+									className="text-sm text-gray-700 flex items-center gap-1.5 cursor-pointer"
+								>
+									<IoEyeOutline
+										size={16}
+										className={
+											previousStepsTransparency
+												? "text-blue-600"
+												: "text-gray-500"
+										}
+									/>
+									Прозрачность предыдущих шагов
+								</label>
+								<div className="flex items-center gap-1.5">
+									<span className="text-xs font-medium text-gray-500">
+										{previousStepsTransparency ? "Вкл" : "Выкл"}
+									</span>
+									<label
+										htmlFor="transparency-toggle"
+										className="relative inline-block w-10 align-middle select-none cursor-pointer"
+									>
+										<input
+											type="checkbox"
+											id="transparency-toggle"
+											checked={previousStepsTransparency}
+											onChange={handlePreviousStepsTransparencyToggle}
+											className="sr-only peer"
+										/>
+										<div className="h-6 w-11 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-700 cursor-pointer shadow-inner hover:shadow" />
+									</label>
+								</div>
+							</div>
+
+							{/* Включение/отключение автовращения модели */}
+							<div className="flex items-center justify-between">
+								<label
+									htmlFor="rotation-toggle"
+									className="text-sm text-gray-700 flex items-center gap-1.5 cursor-pointer"
+								>
+									<IoRefreshOutline
+										size={16}
+										className={
+											autoRotationEnabled ? "text-green-600" : "text-gray-500"
+										}
+									/>
+									Автовращение модели
+								</label>
+								<div className="flex items-center gap-1.5">
+									<span className="text-xs font-medium text-gray-500">
+										{autoRotationEnabled ? "Вкл" : "Выкл"}
+									</span>
+									<label
+										htmlFor="rotation-toggle"
+										className="relative inline-block w-10 align-middle select-none cursor-pointer"
+									>
+										<input
+											type="checkbox"
+											id="rotation-toggle"
+											checked={autoRotationEnabled}
+											onChange={handleAutoRotationToggle}
+											className="sr-only peer"
+										/>
+										<div className="h-6 w-11 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-700 cursor-pointer shadow-inner hover:shadow" />
+									</label>
+								</div>
+							</div>
+
+							{/* Настройка уровня прозрачности */}
+							{previousStepsTransparency && (
+								<div className="flex items-center gap-3">
+									<label
+										htmlFor="opacity-slider"
+										className="text-sm text-gray-700 whitespace-nowrap"
+									>
+										Уровень прозрачности:
+									</label>
+									<div className="flex items-center w-full gap-2">
+										<input
+											type="range"
+											id="opacity-slider"
+											min="0.1"
+											max="0.9"
+											step="0.1"
+											value={previousStepsOpacity}
+											onChange={handlePreviousStepsOpacityChange}
+											className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+										/>
+										<span className="text-xs font-medium text-gray-700 min-w-[30px]">
+											{Math.round(previousStepsOpacity * 100)}%
+										</span>
+									</div>
+								</div>
+							)}
 
 							{/* Выбор цвета подсветки */}
 							{highlightEnabled && (
@@ -407,10 +896,32 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 				{/* Название шага */}
 				<div className="flex justify-between items-center">
 					<h3 className="font-semibold text-lg">{renderStepTitle()}</h3>
-					<div className="text-sm text-gray-600 flex items-center">
-						<IoLayersOutline className="mr-1.5" size={18} />
-						{getCurrentPartCount()}{" "}
-						{getCurrentPartCount() === 1 ? "деталь" : "деталей"}
+					<div className="text-sm text-gray-600 flex items-center gap-2">
+						{currentStep > 0 && onPartFocus && (
+							<button
+								type="button"
+								onClick={() => {
+									// Focus on all parts in the current step
+									const stepParts = instructions[currentStep - 1]?.parts || [];
+									if (stepParts.length > 0 && onStepPartsFocus) {
+										onStepPartsFocus(stepParts);
+									} else if (stepParts.length > 0 && onPartFocus) {
+										// Fallback to focusing on first part if onStepPartsFocus not available
+										onPartFocus(stepParts[0]);
+										displayToast(`Фокус на все детали шага ${currentStep}`, "info");
+									}
+								}}
+								className="p-1.5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+								title="Зазумиться на все детали шага"
+							>
+								<IoScanOutline size={18} />
+							</button>
+						)}
+						<div className="flex items-center">
+							<IoLayersOutline className="mr-1.5" size={18} />
+							{getCurrentPartCount()}{" "}
+							{getCurrentPartCount() === 1 ? "деталь" : "деталей"}
+						</div>
 					</div>
 				</div>
 			</div>
@@ -477,36 +988,8 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 					<h4 className="text-sm font-medium text-gray-600 mb-3 flex items-center">
 						<IoLayersOutline className="mr-1.5" size={16} /> Детали в этом шаге:
 					</h4>
-					<div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1 pb-1">
-						{getCurrentParts().map((part) => (
-							<button
-								key={part}
-								type="button"
-								className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all text-left
-									${
-										visibleParts[part]
-											? "bg-green-50 border-green-200 text-green-800"
-											: "bg-gray-50 border-gray-200 text-gray-800 opacity-60"
-									}`}
-								onClick={() => togglePartVisibility(part)}
-								onKeyDown={(e) => handlePartKeyDown(e, part)}
-							>
-								{visibleParts[part] ? (
-									<IoEyeOutline
-										className="text-green-600 flex-shrink-0"
-										size={18}
-									/>
-								) : (
-									<IoEyeOffOutline
-										className="text-gray-500 flex-shrink-0"
-										size={18}
-									/>
-								)}
-								<span className="text-sm truncate flex-1" title={part}>
-									{part}
-								</span>
-							</button>
-						))}
+					<div className="max-h-60 overflow-y-auto pr-1 pb-1">
+						<RenderPartGroup group={groupPartsByHierarchy(getCurrentParts())} />
 					</div>
 				</div>
 			)}

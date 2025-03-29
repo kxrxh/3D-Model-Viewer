@@ -8,6 +8,8 @@ interface ModelProps {
 	currentStepParts?: string[];
 	highlightColor?: string;
 	highlightEnabled?: boolean;
+	previousStepsTransparency?: boolean;
+	previousStepsOpacity?: number;
 	onLoad: (parts: Record<string, boolean>) => void;
 	onPartFound: (meshRefs: Record<string, THREE.Mesh>) => void;
 }
@@ -18,6 +20,8 @@ function Model({
 	currentStepParts = [],
 	highlightColor = "#f87171",
 	highlightEnabled = true,
+	previousStepsTransparency = false,
+	previousStepsOpacity = 0.4,
 	onLoad,
 	onPartFound,
 }: ModelProps) {
@@ -121,38 +125,58 @@ function Model({
 						// Получаем оригинальный материал
 						const originalMaterial = originalMaterials.current.get(child);
 
-						if (isCurrentStepPart && highlightEnabled && originalMaterial) {
-							// Применяем подсветку для деталей текущего шага
-							// Клонируем оригинальный материал для безопасного изменения
-							if (Array.isArray(child.material)) {
-								// Для meshes с несколькими материалами
-								child.material = child.material.map((mat) => {
-									const highlightedMaterial = mat.clone();
-									highlightedMaterial.color = highlightThreeColor;
-									highlightedMaterial.emissive = highlightThreeColor
+						if (originalMaterial) {
+							// Create a new material to work with
+							let newMaterial: THREE.Material | THREE.Material[];
+							if (Array.isArray(originalMaterial)) {
+								// For meshes with multiple materials
+								newMaterial = originalMaterial.map((mat) => mat.clone());
+							} else {
+								// For meshes with a single material
+								newMaterial = originalMaterial.clone();
+							}
+
+							// Apply highlight to current step parts if enabled
+							if (isCurrentStepPart && highlightEnabled) {
+								if (Array.isArray(newMaterial)) {
+									for (const mat of newMaterial) {
+										mat.color = highlightThreeColor;
+										mat.emissive = highlightThreeColor
+											.clone()
+											.multiplyScalar(0.2);
+										mat.opacity = 1.0; // Current step is fully opaque
+										mat.transparent = false;
+									}
+								} else {
+									newMaterial.color = highlightThreeColor;
+									newMaterial.emissive = highlightThreeColor
 										.clone()
 										.multiplyScalar(0.2);
-									return highlightedMaterial;
-								});
-							} else {
-								// Для meshes с одним материалом
-								const highlightedMaterial = child.material.clone();
-								highlightedMaterial.color = highlightThreeColor;
-								highlightedMaterial.emissive = highlightThreeColor
-									.clone()
-									.multiplyScalar(0.2);
-								child.material = highlightedMaterial;
+									newMaterial.opacity = 1.0; // Current step is fully opaque
+									newMaterial.transparent = false;
+								}
 							}
-						} else if (originalMaterial) {
-							// Восстанавливаем оригинальный материал для деталей, которые не в текущем шаге
-							// или если подсветка отключена
-							if (Array.isArray(originalMaterial)) {
-								// Для meshes с несколькими материалами
-								child.material = originalMaterial.map((mat) => mat.clone());
-							} else {
-								// Для meshes с одним материалом
-								child.material = originalMaterial.clone();
+							// Apply transparency to previous steps if enabled
+							else if (
+								!isCurrentStepPart &&
+								previousStepsTransparency &&
+								currentStepParts.length > 0
+							) {
+								if (Array.isArray(newMaterial)) {
+									for (const mat of newMaterial) {
+										mat.transparent = true;
+										mat.opacity = previousStepsOpacity;
+										mat.depthWrite = true; // Ensure proper rendering with transparency
+									}
+								} else {
+									newMaterial.transparent = true;
+									newMaterial.opacity = previousStepsOpacity;
+									newMaterial.depthWrite = true; // Ensure proper rendering with transparency
+								}
 							}
+
+							// Apply the new material
+							child.material = newMaterial;
 						}
 					}
 				} else {
@@ -160,7 +184,15 @@ function Model({
 				}
 			}
 		});
-	}, [visibleParts, currentStepParts, highlightColor, highlightEnabled, scene]);
+	}, [
+		visibleParts,
+		currentStepParts,
+		highlightColor,
+		highlightEnabled,
+		previousStepsTransparency,
+		previousStepsOpacity,
+		scene,
+	]);
 
 	return <primitive object={scene} />;
 }

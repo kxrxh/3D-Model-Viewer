@@ -51,6 +51,10 @@ export default function ModelViewer() {
 	const [hasModel, setHasModel] = useState<boolean>(false);
 	const [highlightColor, setHighlightColor] = useState<string>("#f87171"); // Default to a light red color
 	const [highlightEnabled, setHighlightEnabled] = useState<boolean>(true);
+	const [previousStepsTransparency, setPreviousStepsTransparency] =
+		useState<boolean>(true); // Enable by default
+	const [previousStepsOpacity, setPreviousStepsOpacity] = useState<number>(0.4); // 40% opacity by default
+	const [autoRotationEnabled, setAutoRotationEnabled] = useState<boolean>(true); // Enable by default
 
 	const {
 		modelParts,
@@ -314,6 +318,40 @@ export default function ModelViewer() {
 		[showToast],
 	);
 
+	const handlePreviousStepsTransparencyChange = useCallback(
+		(enabled: boolean) => {
+			console.log(
+				"Изменение прозрачности предыдущих шагов:",
+				enabled ? "включена" : "выключена",
+			);
+			setPreviousStepsTransparency(enabled);
+			showToast(
+				`Прозрачность предыдущих шагов ${enabled ? "включена" : "выключена"}`,
+				"info",
+			);
+		},
+		[showToast],
+	);
+
+	const handlePreviousStepsOpacityChange = useCallback((opacity: number) => {
+		setPreviousStepsOpacity(opacity);
+	}, []);
+
+	const handleAutoRotationChange = useCallback(
+		(enabled: boolean) => {
+			console.log(
+				"Изменение автовращения модели:",
+				enabled ? "включено" : "выключено",
+			);
+			setAutoRotationEnabled(enabled);
+			showToast(
+				`Автовращение модели ${enabled ? "включено" : "выключено"}`,
+				"info",
+			);
+		},
+		[showToast],
+	);
+
 	const resetView = useCallback(() => {
 		setSelectedParts([]);
 		if (controlsRef.current) {
@@ -323,6 +361,39 @@ export default function ModelViewer() {
 			controlsRef.current.update();
 		}
 	}, [setSelectedParts]);
+
+	// Handle focusing on a specific part
+	const handlePartFocus = useCallback((partName: string) => {
+		if (modelParts?.[partName] && modelState.meshes[partName]) {
+			// Set the selected part's mesh for the PartFocusController to handle
+			setSelectedParts([modelState.meshes[partName]]);
+			showToast(`Фокус на деталь: ${partName.split('/').pop() || partName}`, "info");
+			
+			// Disable auto-rotation when focusing on a part
+			if (autoRotationEnabled) {
+				setAutoRotationEnabled(false);
+			}
+		}
+	}, [modelParts, modelState.meshes, setSelectedParts, showToast, autoRotationEnabled]);
+
+	// Handle focusing on all parts in a step
+	const handleStepPartsFocus = useCallback((stepParts: string[]) => {
+		// Collect all available meshes for the parts in this step
+		const meshes = stepParts
+			.filter(part => modelParts?.[part] && modelState.meshes[part])
+			.map(part => modelState.meshes[part]);
+		
+		if (meshes.length > 0) {
+			// Set all part meshes for this step to focus on
+			setSelectedParts(meshes);
+			showToast(`Фокус на все детали шага (${meshes.length} шт.)`, "info");
+			
+			// Disable auto-rotation
+			if (autoRotationEnabled) {
+				setAutoRotationEnabled(false);
+			}
+		}
+	}, [modelParts, modelState.meshes, setSelectedParts, showToast, autoRotationEnabled]);
 
 	// Handle model loading completion
 	useEffect(() => {
@@ -409,6 +480,8 @@ export default function ModelViewer() {
 							currentStepParts={currentStepParts}
 							highlightColor={highlightColor}
 							highlightEnabled={highlightEnabled}
+							previousStepsTransparency={previousStepsTransparency}
+							previousStepsOpacity={previousStepsOpacity}
 							onLoad={handleModelLoad}
 							onPartFound={handlePartFound}
 						/>
@@ -418,7 +491,7 @@ export default function ModelViewer() {
 				<OrbitControls
 					ref={controlsRef}
 					makeDefault
-					autoRotate={selectedParts.length === 0}
+					autoRotate={autoRotationEnabled && selectedParts.length === 0}
 					autoRotateSpeed={0.5}
 					enableZoom={true}
 					enablePan={true}
@@ -463,6 +536,9 @@ export default function ModelViewer() {
 			profiles,
 			adaptiveDprEnabled,
 			handlePerformanceChange,
+			previousStepsTransparency,
+			previousStepsOpacity,
+			autoRotationEnabled,
 		],
 	);
 
@@ -510,10 +586,21 @@ export default function ModelViewer() {
 								currentStep={currentStep}
 								onStepChange={setCurrentStep}
 								onVisibilityChange={handleVisibilityChange}
+								onPartFocus={handlePartFocus}
+								onStepPartsFocus={handleStepPartsFocus}
+								showToast={showToast}
 								highlightEnabled={highlightEnabled}
 								onHighlightEnabledChange={handleHighlightEnabledChange}
 								highlightColor={highlightColor}
 								onHighlightColorChange={handleHighlightColorChange}
+								previousStepsTransparency={previousStepsTransparency}
+								onPreviousStepsTransparencyChange={
+									handlePreviousStepsTransparencyChange
+								}
+								previousStepsOpacity={previousStepsOpacity}
+								onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
+								autoRotationEnabled={autoRotationEnabled}
+								onAutoRotationChange={handleAutoRotationChange}
 							/>
 						</Widget>
 					)}
