@@ -63,6 +63,7 @@ interface InstructionViewerProps {
 	onPreviousStepsOpacityChange?: (opacity: number) => void;
 	autoRotationEnabled?: boolean;
 	onAutoRotationChange?: (enabled: boolean) => void;
+	truncateName?: (name: string, maxLength?: number) => string;
 }
 
 const InstructionViewer: React.FC<InstructionViewerProps> = ({
@@ -83,6 +84,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	onPreviousStepsOpacityChange,
 	autoRotationEnabled = true,
 	onAutoRotationChange,
+	truncateName = (name) => name.split('/').pop() || name,
 }) => {
 	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">(
 		"cumulative",
@@ -545,7 +547,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 							className="font-medium text-sm truncate flex-1"
 							title={group.name}
 						>
-							{group.name}
+							{truncateName ? truncateName(group.name) : group.name}
 						</span>
 
 						{/* Group visibility toggle */}
@@ -641,7 +643,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 											/>
 										)}
 										<span className="text-sm truncate flex-1" title={displayName}>
-											{displayName}
+											{truncateName ? truncateName(displayName) : displayName}
 										</span>
 									</button>
 									

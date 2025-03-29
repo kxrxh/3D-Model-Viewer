@@ -39,6 +39,12 @@ import type { InstructionStep } from "./types";
 // Performance settings
 THREE.Cache.enabled = true;
 
+// Helper function to truncate long names
+const truncateName = (name: string, maxLength = 35) => {
+	const shortName = name.split('/').pop() || name;
+	return shortName.length > maxLength ? `${shortName.substring(0, maxLength)}...` : shortName;
+};
+
 export default function ModelViewer() {
 	const modelState = useModelState();
 	const performanceState = usePerformanceProfiles();
@@ -367,7 +373,8 @@ export default function ModelViewer() {
 		if (modelParts?.[partName] && modelState.meshes[partName]) {
 			// Set the selected part's mesh for the PartFocusController to handle
 			setSelectedParts([modelState.meshes[partName]]);
-			showToast(`Фокус на деталь: ${partName.split('/').pop() || partName}`, "info");
+			const partDisplayName = truncateName(partName);
+			showToast(`Фокус на деталь: ${partDisplayName}`, "info");
 			
 			// Disable auto-rotation when focusing on a part
 			if (autoRotationEnabled) {
@@ -601,6 +608,7 @@ export default function ModelViewer() {
 								onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
 								autoRotationEnabled={autoRotationEnabled}
 								onAutoRotationChange={handleAutoRotationChange}
+								truncateName={truncateName}
 							/>
 						</Widget>
 					)}
