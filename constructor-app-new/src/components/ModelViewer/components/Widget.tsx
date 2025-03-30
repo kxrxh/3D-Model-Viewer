@@ -37,7 +37,7 @@ const Widget: React.FC<WidgetProps> = ({
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 	const [currentWidth, setCurrentWidth] = useState(width || minWidth);
-	
+
 	const menuRef = useRef<HTMLDivElement>(null);
 	const headerRef = useRef<HTMLDivElement>(null);
 	const resizeHandleRef = useRef<HTMLDivElement>(null);

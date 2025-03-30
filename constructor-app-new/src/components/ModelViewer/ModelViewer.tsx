@@ -72,9 +72,11 @@ export default function ModelViewer() {
 		useState<boolean>(true); // Enable by default
 	const [previousStepsOpacity, setPreviousStepsOpacity] = useState<number>(0.4); // 40% opacity by default
 	const [autoRotationEnabled, setAutoRotationEnabled] = useState<boolean>(true); // Enable by default
-	
+
 	// Widget positions
-	const [currentEditingStep, setCurrentEditingStep] = useState<InstructionStep | undefined>(undefined);
+	const [currentEditingStep, setCurrentEditingStep] = useState<
+		InstructionStep | undefined
+	>(undefined);
 
 	const {
 		modelParts,
@@ -195,10 +197,7 @@ export default function ModelViewer() {
 					}
 
 					if (!modelFile) {
-						showToast(
-							"В архиве не найдено моделей (.glb/.gltf)",
-							"error",
-						);
+						showToast("В архиве не найдено моделей (.glb/.gltf)", "error");
 					}
 				} catch (error) {
 					console.error("Ошибка при распаковке архива:", error);
@@ -317,7 +316,7 @@ export default function ModelViewer() {
 		(newVisibleParts: Record<string, boolean>) => {
 			// Check for actual changes by comparing both objects
 			let hasChanges = false;
-			
+
 			// Check if any parts in newVisibleParts differ from visibleParts
 			for (const key in newVisibleParts) {
 				if (visibleParts[key] !== newVisibleParts[key]) {
@@ -325,7 +324,7 @@ export default function ModelViewer() {
 					break;
 				}
 			}
-			
+
 			// Also check if any parts in visibleParts are not in newVisibleParts
 			if (!hasChanges) {
 				for (const key in visibleParts) {
@@ -335,7 +334,7 @@ export default function ModelViewer() {
 					}
 				}
 			}
-			
+
 			if (hasChanges) {
 				setVisibleParts(newVisibleParts);
 			}
@@ -482,62 +481,77 @@ export default function ModelViewer() {
 	}, [modelUrl]);
 
 	// Handle step operations (save, edit, delete)
-	const handleSaveStep = useCallback((step: Omit<InstructionStep, "id">) => {
-		if (currentEditingStep) {
-			// Editing existing step
-			setInstructions(prev => prev.map(s => 
-				s.id === currentEditingStep.id 
-					? { ...step, id: currentEditingStep.id }
-					: s
-			));
-		} else {
-			// Adding new step
-			const newId = instructions.length > 0 
-				? Math.max(...instructions.map(s => s.id)) + 1 
-				: 1;
-			
-			setInstructions(prev => [...prev, { ...step, id: newId }]);
-		}
-		
-		setCurrentEditingStep(undefined);
-		setHasInstructions(true);
-	}, [currentEditingStep, instructions]);
+	const handleSaveStep = useCallback(
+		(step: Omit<InstructionStep, "id">) => {
+			if (currentEditingStep) {
+				// Editing existing step
+				setInstructions((prev) =>
+					prev.map((s) =>
+						s.id === currentEditingStep.id
+							? { ...step, id: currentEditingStep.id }
+							: s,
+					),
+				);
+			} else {
+				// Adding new step
+				const newId =
+					instructions.length > 0
+						? Math.max(...instructions.map((s) => s.id)) + 1
+						: 1;
 
-	const handleEditStep = useCallback((index: number) => {
-		setCurrentEditingStep(instructions[index]);
-		
-		// Also update visibility to match the step
-		const step = instructions[index];
-		const newVisibleParts: Record<string, boolean> = {};
-		for (const part of Object.keys(modelParts || {})) {
-			newVisibleParts[part] = step.parts.includes(part);
-		}
-		setVisibleParts(newVisibleParts);
-		
-		showToast(`Редактирование шага ${index + 1}`, "info");
-	}, [instructions, showToast, modelParts, setVisibleParts]);
+				setInstructions((prev) => [...prev, { ...step, id: newId }]);
+			}
 
-	const handleDeleteStep = useCallback((index: number) => {
-		setInstructions(prev => {
-			const newInstructions = prev.filter((_, i) => i !== index);
-			// Renumber IDs if needed
-			return newInstructions.map((step, i) => ({
-				...step,
-				id: i + 1,
-			}));
-		});
-		
-		// If we were editing this step, cancel edit
-		if (currentEditingStep && currentEditingStep.id === instructions[index].id) {
 			setCurrentEditingStep(undefined);
-		}
-		
-		showToast(`Шаг ${index + 1} удален`, "info");
-	}, [currentEditingStep, instructions, showToast]);
+			setHasInstructions(true);
+		},
+		[currentEditingStep, instructions],
+	);
+
+	const handleEditStep = useCallback(
+		(index: number) => {
+			setCurrentEditingStep(instructions[index]);
+
+			// Also update visibility to match the step
+			const step = instructions[index];
+			const newVisibleParts: Record<string, boolean> = {};
+			for (const part of Object.keys(modelParts || {})) {
+				newVisibleParts[part] = step.parts.includes(part);
+			}
+			setVisibleParts(newVisibleParts);
+
+			showToast(`Редактирование шага ${index + 1}`, "info");
+		},
+		[instructions, showToast, modelParts, setVisibleParts],
+	);
+
+	const handleDeleteStep = useCallback(
+		(index: number) => {
+			setInstructions((prev) => {
+				const newInstructions = prev.filter((_, i) => i !== index);
+				// Renumber IDs if needed
+				return newInstructions.map((step, i) => ({
+					...step,
+					id: i + 1,
+				}));
+			});
+
+			// If we were editing this step, cancel edit
+			if (
+				currentEditingStep &&
+				currentEditingStep.id === instructions[index].id
+			) {
+				setCurrentEditingStep(undefined);
+			}
+
+			showToast(`Шаг ${index + 1} удален`, "info");
+		},
+		[currentEditingStep, instructions, showToast],
+	);
 
 	const handleCancelEdit = useCallback(() => {
 		setCurrentEditingStep(undefined);
-		
+
 		// Reset to all parts visible
 		const allVisible: Record<string, boolean> = {};
 		for (const part of Object.keys(modelParts || {})) {
@@ -564,7 +578,7 @@ export default function ModelViewer() {
 
 		const dataStr = JSON.stringify(exportData, null, 2);
 		const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
-		
+
 		const exportFileName = "assembly_instructions.json";
 
 		const linkElement = document.createElement("a");
@@ -624,7 +638,7 @@ export default function ModelViewer() {
 				<Suspense fallback={null}>
 					<Stage
 						adjustCamera={false}
-						intensity={0.8}  // Reduced for better performance
+						intensity={0.8} // Reduced for better performance
 						shadows={profiles[activeProfile as keyof typeof profiles].shadows}
 						// @ts-ignore - environment prop exists in drei but TS definition might be wrong
 						environment={
@@ -675,7 +689,9 @@ export default function ModelViewer() {
 
 				{adaptiveDprEnabled && <AdaptiveDpr pixelated={true} />}
 				<AdaptiveEvents />
-				{profiles[activeProfile as keyof typeof profiles].shadows && <BakeShadows />}
+				{profiles[activeProfile as keyof typeof profiles].shadows && (
+					<BakeShadows />
+				)}
 
 				{showStats && <Stats />}
 			</Canvas>
@@ -697,7 +713,7 @@ export default function ModelViewer() {
 			profiles,
 			handleModelLoad,
 			handlePartFound,
-			handlePerformanceChange
+			handlePerformanceChange,
 		],
 	);
 

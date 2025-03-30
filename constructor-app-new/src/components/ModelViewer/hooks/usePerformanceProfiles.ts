@@ -62,14 +62,14 @@ export const PERFORMANCE_PROFILES = {
 export default function usePerformanceProfiles() {
 	const [activeProfile, setActiveProfile] = useState<string>("medium");
 	const [dpr, setDpr] = useState<number>(
-		activeProfile === "ultraLow" 
-			? Math.min(1, window.devicePixelRatio) 
-			: activeProfile === "low" 
-				? Math.min(1.25, window.devicePixelRatio) 
-				: Math.min(1.75, window.devicePixelRatio)
+		activeProfile === "ultraLow"
+			? Math.min(1, window.devicePixelRatio)
+			: activeProfile === "low"
+				? Math.min(1.25, window.devicePixelRatio)
+				: Math.min(1.75, window.devicePixelRatio),
 	);
 	const [adaptiveDprEnabled, setAdaptiveDprEnabled] = useState<boolean>(
-		activeProfile === "auto"
+		activeProfile === "auto",
 	);
 
 	// Auto-adjust DPR when profile changes
@@ -83,7 +83,7 @@ export default function usePerformanceProfiles() {
 		} else {
 			setDpr(Math.min(1.75, window.devicePixelRatio));
 		}
-		
+
 		setAdaptiveDprEnabled(activeProfile === "auto");
 	}, [activeProfile]);
 
@@ -100,7 +100,7 @@ export default function usePerformanceProfiles() {
 				setDpr((prev) => Math.max(prev - 0.25, 0.75));
 			}
 		},
-		[activeProfile]
+		[activeProfile],
 	);
 
 	return {
