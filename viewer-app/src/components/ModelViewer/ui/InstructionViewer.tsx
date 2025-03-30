@@ -84,7 +84,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	onPreviousStepsOpacityChange,
 	autoRotationEnabled = true,
 	onAutoRotationChange,
-	truncateName = (name) => name.split('/').pop() || name,
+	truncateName = (name) => name.split("/").pop() || name,
 }) => {
 	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">(
 		"cumulative",
@@ -617,12 +617,13 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 									: true;
 
 							return (
-								<div 
+								<div
 									key={`part-${originalPartName}`}
 									className={`flex items-center gap-2 w-full rounded-lg 
-										${isVisible
-											? "bg-green-50 border-green-200 text-green-800"
-											: "bg-gray-50 border-gray-200 text-gray-800 opacity-60"
+										${
+											isVisible
+												? "bg-green-50 border-green-200 text-green-800"
+												: "bg-gray-50 border-gray-200 text-gray-800 opacity-60"
 										} border`}
 								>
 									<button
@@ -642,11 +643,14 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 												size={18}
 											/>
 										)}
-										<span className="text-sm truncate flex-1" title={displayName}>
+										<span
+											className="text-sm truncate flex-1"
+											title={displayName}
+										>
 											{truncateName ? truncateName(displayName) : displayName}
 										</span>
 									</button>
-									
+
 									{/* Focus button - only show for visible parts */}
 									{isVisible && onPartFocus && (
 										<button
@@ -668,13 +672,16 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	};
 
 	// Simple fallback for showToast if not provided
-	const displayToast = useCallback((message: string, type: ToastType = "info") => {
-		if (showToast) {
-			showToast(message, type);
-		} else {
-			console.log(`[${type.toUpperCase()}] ${message}`);
-		}
-	}, [showToast]);
+	const displayToast = useCallback(
+		(message: string, type: ToastType = "info") => {
+			if (showToast) {
+				showToast(message, type);
+			} else {
+				console.log(`[${type.toUpperCase()}] ${message}`);
+			}
+		},
+		[showToast],
+	);
 
 	return (
 		<div className="p-1">
@@ -910,7 +917,10 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 									} else if (stepParts.length > 0 && onPartFocus) {
 										// Fallback to focusing on first part if onStepPartsFocus not available
 										onPartFocus(stepParts[0]);
-										displayToast(`Фокус на все детали шага ${currentStep}`, "info");
+										displayToast(
+											`Фокус на все детали шага ${currentStep}`,
+											"info",
+										);
 									}
 								}}
 								className="p-1.5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"

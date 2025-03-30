@@ -107,50 +107,54 @@ function Model({
 	}, [scene, onLoad, onPartFound]);
 
 	// Функция для проверки, поддерживает ли материал цвет и эмиссию
-	const applyColorToMaterial = useCallback((
-		material: THREE.Material,
-		color: THREE.Color,
-		emissiveIntensity = 0.2
-	) => {
-		// Проверяем, является ли материал типом, поддерживающим свойство color
-		if (
-			material instanceof THREE.MeshStandardMaterial ||
-			material instanceof THREE.MeshPhongMaterial ||
-			material instanceof THREE.MeshLambertMaterial ||
-			material instanceof THREE.MeshBasicMaterial
-		) {
-			material.color.copy(color);
+	const applyColorToMaterial = useCallback(
+		(material: THREE.Material, color: THREE.Color, emissiveIntensity = 0.2) => {
+			// Проверяем, является ли материал типом, поддерживающим свойство color
+			if (
+				material instanceof THREE.MeshStandardMaterial ||
+				material instanceof THREE.MeshPhongMaterial ||
+				material instanceof THREE.MeshLambertMaterial ||
+				material instanceof THREE.MeshBasicMaterial
+			) {
+				material.color.copy(color);
 
-			// Проверяем поддержку эмиссии
-			if ('emissive' in material && material.emissive instanceof THREE.Color) {
-				material.emissive.copy(color.clone().multiplyScalar(emissiveIntensity));
+				// Проверяем поддержку эмиссии
+				if (
+					"emissive" in material &&
+					material.emissive instanceof THREE.Color
+				) {
+					material.emissive.copy(
+						color.clone().multiplyScalar(emissiveIntensity),
+					);
+				}
 			}
-		}
-		
-		// Для любого типа материала
-		if (material.transparent !== undefined) {
-			material.transparent = false;
-		}
-		if (material.opacity !== undefined) {
-			material.opacity = 1.0;
-		}
-	}, []);
+
+			// Для любого типа материала
+			if (material.transparent !== undefined) {
+				material.transparent = false;
+			}
+			if (material.opacity !== undefined) {
+				material.opacity = 1.0;
+			}
+		},
+		[],
+	);
 
 	// Функция для применения прозрачности к материалу
-	const applyTransparencyToMaterial = useCallback((
-		material: THREE.Material,
-		opacity: number
-	) => {
-		if (material.transparent !== undefined) {
-			material.transparent = true;
-		}
-		if (material.opacity !== undefined) {
-			material.opacity = opacity;
-		}
-		if (material.depthWrite !== undefined) {
-			material.depthWrite = true;
-		}
-	}, []);
+	const applyTransparencyToMaterial = useCallback(
+		(material: THREE.Material, opacity: number) => {
+			if (material.transparent !== undefined) {
+				material.transparent = true;
+			}
+			if (material.opacity !== undefined) {
+				material.opacity = opacity;
+			}
+			if (material.depthWrite !== undefined) {
+				material.depthWrite = true;
+			}
+		},
+		[],
+	);
 
 	// Update visibility and highlight current step parts
 	useEffect(() => {
@@ -203,7 +207,10 @@ function Model({
 										applyTransparencyToMaterial(mat, previousStepsOpacity);
 									}
 								} else {
-									applyTransparencyToMaterial(newMaterial, previousStepsOpacity);
+									applyTransparencyToMaterial(
+										newMaterial,
+										previousStepsOpacity,
+									);
 								}
 							}
 
@@ -225,7 +232,7 @@ function Model({
 		previousStepsOpacity,
 		scene,
 		applyColorToMaterial,
-		applyTransparencyToMaterial
+		applyTransparencyToMaterial,
 	]);
 
 	return <primitive object={scene} />;

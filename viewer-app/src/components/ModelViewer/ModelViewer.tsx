@@ -41,8 +41,10 @@ THREE.Cache.enabled = true;
 
 // Helper function to truncate long names
 const truncateName = (name: string, maxLength = 35) => {
-	const shortName = name.split('/').pop() || name;
-	return shortName.length > maxLength ? `${shortName.substring(0, maxLength)}...` : shortName;
+	const shortName = name.split("/").pop() || name;
+	return shortName.length > maxLength
+		? `${shortName.substring(0, maxLength)}...`
+		: shortName;
 };
 
 export default function ModelViewer() {
@@ -369,38 +371,56 @@ export default function ModelViewer() {
 	}, [setSelectedParts]);
 
 	// Handle focusing on a specific part
-	const handlePartFocus = useCallback((partName: string) => {
-		if (modelParts?.[partName] && modelState.meshes[partName]) {
-			// Set the selected part's mesh for the PartFocusController to handle
-			setSelectedParts([modelState.meshes[partName]]);
-			const partDisplayName = truncateName(partName);
-			showToast(`Фокус на деталь: ${partDisplayName}`, "info");
-			
-			// Disable auto-rotation when focusing on a part
-			if (autoRotationEnabled) {
-				setAutoRotationEnabled(false);
+	const handlePartFocus = useCallback(
+		(partName: string) => {
+			if (modelParts?.[partName] && modelState.meshes[partName]) {
+				// Set the selected part's mesh for the PartFocusController to handle
+				setSelectedParts([modelState.meshes[partName]]);
+				const partDisplayName = truncateName(partName);
+				showToast(`Фокус на деталь: ${partDisplayName}`, "info");
+
+				// Disable auto-rotation when focusing on a part
+				if (autoRotationEnabled) {
+					setAutoRotationEnabled(false);
+				}
 			}
-		}
-	}, [modelParts, modelState.meshes, setSelectedParts, showToast, autoRotationEnabled]);
+		},
+		[
+			modelParts,
+			modelState.meshes,
+			setSelectedParts,
+			showToast,
+			autoRotationEnabled,
+		],
+	);
 
 	// Handle focusing on all parts in a step
-	const handleStepPartsFocus = useCallback((stepParts: string[]) => {
-		// Collect all available meshes for the parts in this step
-		const meshes = stepParts
-			.filter(part => modelParts?.[part] && modelState.meshes[part])
-			.map(part => modelState.meshes[part]);
-		
-		if (meshes.length > 0) {
-			// Set all part meshes for this step to focus on
-			setSelectedParts(meshes);
-			showToast(`Фокус на все детали шага (${meshes.length} шт.)`, "info");
-			
-			// Disable auto-rotation
-			if (autoRotationEnabled) {
-				setAutoRotationEnabled(false);
+	const handleStepPartsFocus = useCallback(
+		(stepParts: string[]) => {
+			// Collect all available meshes for the parts in this step
+			const meshes = stepParts
+				.filter((part) => modelParts?.[part] && modelState.meshes[part])
+				.map((part) => modelState.meshes[part]);
+
+			if (meshes.length > 0) {
+				// Set all part meshes for this step to focus on
+				setSelectedParts(meshes);
+				showToast(`Фокус на все детали шага (${meshes.length} шт.)`, "info");
+
+				// Disable auto-rotation
+				if (autoRotationEnabled) {
+					setAutoRotationEnabled(false);
+				}
 			}
-		}
-	}, [modelParts, modelState.meshes, setSelectedParts, showToast, autoRotationEnabled]);
+		},
+		[
+			modelParts,
+			modelState.meshes,
+			setSelectedParts,
+			showToast,
+			autoRotationEnabled,
+		],
+	);
 
 	// Handle model loading completion
 	useEffect(() => {
