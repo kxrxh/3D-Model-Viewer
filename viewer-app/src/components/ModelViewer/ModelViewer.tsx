@@ -30,8 +30,8 @@ import { MdKeyboardArrowLeft } from "react-icons/md";
 
 import { useModelState, usePerformanceProfiles, useToast } from "./hooks";
 
-import { ControlPanel, PerformanceProfileSelector, Widget } from "./components";
-
+import { Widget } from "./components";
+import { ControlPanel, PerformanceProfileSelector } from "./ui";
 import { DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET } from "./utils";
 
 import type { InstructionStep } from "./types";
