@@ -32,9 +32,10 @@ import { useModelState, usePerformanceProfiles, useToast } from "./hooks";
 
 import { Widget } from "./components";
 import { ControlPanel, PerformanceProfileSelector } from "./ui";
-import { DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET } from "./utils";
 
 import type { InstructionStep } from "./types";
+
+import { DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET } from "./utils";
 
 // Performance settings
 THREE.Cache.enabled = true;
