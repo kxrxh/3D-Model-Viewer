@@ -17,6 +17,7 @@ import {
 	IoRemoveOutline,
 	IoAddOutline,
 	IoScanOutline,
+	IoBrushOutline,
 } from "react-icons/io5";
 import { isLightColor } from "../utils";
 
@@ -64,6 +65,8 @@ interface InstructionViewerProps {
 	autoRotationEnabled?: boolean;
 	onAutoRotationChange?: (enabled: boolean) => void;
 	truncateName?: (name: string, maxLength?: number) => string;
+	backgroundColor?: string;
+	onBackgroundColorChange?: (color: string) => void;
 }
 
 const InstructionViewer: React.FC<InstructionViewerProps> = ({
@@ -85,6 +88,8 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	autoRotationEnabled = true,
 	onAutoRotationChange,
 	truncateName = (name) => name.split("/").pop() || name,
+	backgroundColor = "#E2E8F0",
+	onBackgroundColorChange,
 }) => {
 	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">(
 		"cumulative",
@@ -890,6 +895,39 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 									</div>
 								</div>
 							)}
+
+							{/* Настройка цвета фона */}
+							<div className="flex items-center gap-3">
+								<label
+									htmlFor="background-color"
+									className="text-sm text-gray-700 whitespace-nowrap flex items-center gap-1.5"
+								>
+									<IoBrushOutline size={16} />
+									Цвет фона:
+								</label>
+								<div className="flex items-center flex-1 gap-2">
+									<input
+										type="color"
+										id="background-color"
+										value={backgroundColor}
+										onChange={(e) => {
+											if (onBackgroundColorChange) {
+												onBackgroundColorChange(e.target.value);
+											}
+										}}
+										className="h-8 w-8 rounded border-0 cursor-pointer"
+									/>
+									<div
+										className="h-8 px-3 flex-1 rounded flex items-center justify-center text-sm font-medium"
+										style={{
+											backgroundColor: backgroundColor,
+											color: isLightColor(backgroundColor) ? "#000" : "#fff",
+										}}
+									>
+										{backgroundColor}
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				)}

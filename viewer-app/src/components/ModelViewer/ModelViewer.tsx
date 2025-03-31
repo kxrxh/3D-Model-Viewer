@@ -63,6 +63,7 @@ export default function ModelViewer() {
 		useState<boolean>(true); // Enable by default
 	const [previousStepsOpacity, setPreviousStepsOpacity] = useState<number>(0.4); // 40% opacity by default
 	const [autoRotationEnabled, setAutoRotationEnabled] = useState<boolean>(true); // Enable by default
+	const [backgroundColor, setBackgroundColor] = useState<string>("#E2E8F0"); // Default background
 
 	const {
 		modelParts,
@@ -360,6 +361,10 @@ export default function ModelViewer() {
 		[showToast],
 	);
 
+	const handleBackgroundColorChange = useCallback((color: string) => {
+		setBackgroundColor(color);
+	}, []);
+
 	const resetView = useCallback(() => {
 		setSelectedParts([]);
 		if (controlsRef.current) {
@@ -477,7 +482,7 @@ export default function ModelViewer() {
 						].physicallyCorrectLights;
 				}}
 			>
-				<color attach="background" args={["#E2E8F0"]} />
+				<color attach="background" args={[backgroundColor]} />
 
 				{adaptiveDprEnabled && (
 					<PerformanceMonitor
@@ -566,6 +571,7 @@ export default function ModelViewer() {
 			previousStepsTransparency,
 			previousStepsOpacity,
 			autoRotationEnabled,
+			backgroundColor,
 		],
 	);
 
@@ -629,6 +635,8 @@ export default function ModelViewer() {
 								autoRotationEnabled={autoRotationEnabled}
 								onAutoRotationChange={handleAutoRotationChange}
 								truncateName={truncateName}
+								backgroundColor={backgroundColor}
+								onBackgroundColorChange={handleBackgroundColorChange}
 							/>
 						</Widget>
 					)}
