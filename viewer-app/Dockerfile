@@ -1,29 +1,35 @@
-# Stage 1: Build the application
+###########################################################################
+# Stage 1: Build Stage
+###########################################################################
 FROM oven/bun:latest AS builder
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Install dependencies including devDependencies needed for build
-COPY package.json bun.lock ./
+# Copy dependency files and install dependencies
+COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile
 
-# Copy the rest of the application code
+# Copy the rest of your source code
 COPY . .
-
 
 RUN bun run build
 
-# Stage 2: Create the production image
-FROM oven/bun:latest AS production
-WORKDIR /usr/src/app
+###########################################################################
+# Stage 2: Production Stage
+###########################################################################
+FROM oven/bun:latest
+WORKDIR /app
 
-# Copy only production dependencies configuration
-COPY package.json bun.lock ./
-# Install only production dependencies
-RUN bun install --frozen-lockfile --production
+# Copy only the built assets and necessary files to run the preview server
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/bun.lock* ./
+COPY --from=builder /app/vite.config.js ./vite.config.js
 
-# Copy the built application from the builder stage
-COPY --from=builder /usr/src/app/dist/. ./dist/
+# Install production dependencies including vite
+RUN bun install vite
 
+# Expose the port your app will run on
 EXPOSE 3000
 
-CMD ["bun", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3000"]
+# Start the production preview server
+CMD ["bunx", "vite", "preview", "--host", "--port", "3000"]
