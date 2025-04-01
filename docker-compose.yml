@@ -8,10 +8,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Dashboard port
+      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik:/etc/traefik
+      - traefik_data:/etc/traefik
     networks:
       - web
     command:
@@ -36,7 +36,7 @@ services:
     networks:
       - web
     volumes:
-      - /usr/src/app/node_modules
+      - app_node_modules:/usr/src/app/node_modules
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.app.rule=Host(`www.assembly3d.ru`)"
@@ -50,4 +50,8 @@ services:
 
 networks:
   web:
-    external: false 
+    external: false
+
+volumes:
+  traefik_data:
+  app_node_modules: 
