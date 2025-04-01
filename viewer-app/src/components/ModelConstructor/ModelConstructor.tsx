@@ -23,9 +23,11 @@ import * as THREE from "three";
 import { LoadingSpinner, Toast, ToastContainer } from "../common";
 import { Model } from "../common/core";
 import PartFocusController from "../common/controls/PartFocusController";
-import { InstructionViewer } from "./ui";
+import { InstructionBuilder } from "./ui";
+import InstructionSettings from "./ui/InstructionSettings";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { MdKeyboardArrowLeft } from "react-icons/md";
+import { IoSettingsOutline } from "react-icons/io5";
 
 import { useModelState } from "./hooks";
 import { usePerformanceProfiles, useToast } from "../common/hooks";
@@ -33,6 +35,7 @@ import { usePerformanceProfiles, useToast } from "../common/hooks";
 import { Widget } from "../common/components";
 import { ControlPanel } from "./ui";
 import { PerformanceProfileSelector } from "../common/ui";
+import PartsSelector from "./ui/PartsSelector";
 
 import type { InstructionStep } from "../common/types";
 
@@ -62,7 +65,6 @@ interface ModelConstructorProps {
 
 export default function ModelConstructor({
 	modelUrl,
-	instructions,
 	isLoading,
 	setIsLoading,
 	onReset,
@@ -72,7 +74,6 @@ export default function ModelConstructor({
 	const { toasts, showToast, hideToast } = useToast();
 
 	// Add state for instructions
-	const [currentStep, setCurrentStep] = useState<number>(0);
 	const [highlightColor, setHighlightColor] = useState<string>("#f87171"); // Default to a light red color
 	const [highlightEnabled, setHighlightEnabled] = useState<boolean>(true);
 	const [previousStepsTransparency, setPreviousStepsTransparency] =
@@ -104,21 +105,14 @@ export default function ModelConstructor({
 
 	// Component state
 	const [showStats, setShowStats] = useState(false);
+	const [showSettings, setShowSettings] = useState(false);
 	const controlsRef = useRef<OrbitControlsImpl>(null);
 	const sceneRef = useRef(null);
+	const [instructions, setInstructions] = useState<InstructionStep[]>([]);
 
-	// Update currentStepParts when currentStep changes
-	useEffect(() => {
-		if (currentStep === 0 || !instructions.length) {
-			setCurrentStepParts([]);
-			return;
-		}
-
-		const stepIndex = currentStep - 1;
-		if (stepIndex >= 0 && stepIndex < instructions.length) {
-			setCurrentStepParts(instructions[stepIndex].parts);
-		}
-	}, [currentStep, instructions, setCurrentStepParts]);
+	// Add state for parts selector with proper typing
+	const [showPartsSelector, setShowPartsSelector] = useState(false);
+	const [selectedPartIds, setSelectedPartIds] = useState<string[]>([]);
 
 	const handleVisibilityChange = useCallback(
 		(newVisibleParts: Record<string, boolean>) => {
@@ -194,6 +188,13 @@ export default function ModelConstructor({
 		}
 	}, [setSelectedParts]);
 
+	const handleInstructionsChange = useCallback(
+		(newInstructions: InstructionStep[]) => {
+			setInstructions(newInstructions);
+		},
+		[],
+	);
+
 	// Handle focusing on a specific part
 	const handlePartFocus = useCallback(
 		(partName: string) => {
@@ -246,21 +247,43 @@ export default function ModelConstructor({
 		],
 	);
 
+	// Handle parts selection
+	const handlePartsChange = useCallback(
+		(partIds: string[]) => {
+			setSelectedPartIds(partIds);
+			// Update visibility of parts
+			const newVisibleParts: Record<string, boolean> = {};
+			for (const partId of Object.keys(modelParts || {})) {
+				newVisibleParts[partId] = partIds.includes(partId);
+			}
+			setVisibleParts(newVisibleParts);
+		},
+		[modelParts, setVisibleParts],
+	);
+
+	// Handle parts selector open
+	const handlePartsSelectorOpen = useCallback(() => {
+		setShowPartsSelector(true);
+	}, []);
+
+	// Handle parts selector close
+	const handlePartsSelectorClose = useCallback(() => {
+		setShowPartsSelector(false);
+	}, []);
+
 	// Handle model loading completion
 	useEffect(() => {
 		if (modelParts && Object.keys(modelParts).length > 0) {
 			setIsLoading(false);
 
 			// Initialize with all parts visible if we're at step 0
-			if (currentStep === 0) {
-				const initialVisibleParts: Record<string, boolean> = {};
-				for (const part in modelParts) {
-					initialVisibleParts[part] = true;
-				}
-				setVisibleParts(initialVisibleParts);
+			const initialVisibleParts: Record<string, boolean> = {};
+			for (const part in modelParts) {
+				initialVisibleParts[part] = true;
 			}
+			setVisibleParts(initialVisibleParts);
 		}
-	}, [modelParts, currentStep, setVisibleParts, setIsLoading]);
+	}, [modelParts, setVisibleParts, setIsLoading]);
 
 	// Clean up object URL on unmount
 	useEffect(() => {
@@ -427,35 +450,95 @@ export default function ModelConstructor({
 				/>
 			</div>
 
-			{instructions.length > 0 && (
+			<Widget
+				title="Инструкция по сборке"
+				initialPosition={{ x: 10, y: 70 }}
+				minWidth={500}
+			>
+				<InstructionBuilder
+					instructions={instructions}
+					onInstructionsChange={handleInstructionsChange}
+					onVisibilityChange={handleVisibilityChange}
+					onPartFocus={handlePartFocus}
+					onStepPartsFocus={handleStepPartsFocus}
+					showToast={showToast}
+					highlightEnabled={highlightEnabled}
+					onHighlightEnabledChange={handleHighlightEnabledChange}
+					highlightColor={highlightColor}
+					onHighlightColorChange={handleHighlightColorChange}
+					previousStepsTransparency={previousStepsTransparency}
+					onPreviousStepsTransparencyChange={
+						handlePreviousStepsTransparencyChange
+					}
+					previousStepsOpacity={previousStepsOpacity}
+					onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
+					autoRotationEnabled={autoRotationEnabled}
+					onAutoRotationChange={handleAutoRotationChange}
+					truncateName={truncateName}
+					backgroundColor={backgroundColor}
+					onBackgroundColorChange={handleBackgroundColorChange}
+					availableParts={Object.keys(modelParts || {})}
+					onPartsSelectorOpen={handlePartsSelectorOpen}
+					selectedParts={selectedPartIds}
+					onSelectedPartsChange={handlePartsChange}
+				/>
+			</Widget>
+
+			{/* Settings Widget */}
+			<button
+				type="button"
+				onClick={() => setShowSettings(!showSettings)}
+				className="absolute bottom-2.5 right-2.5 p-2.5 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 z-10 flex items-center gap-2 text-gray-700 hover:text-gray-900"
+			>
+				<IoSettingsOutline size={20} title="Settings" />
+				<span className="text-sm font-medium">
+					{showSettings ? "Закрыть настройки" : "Открыть настройки"}
+				</span>
+			</button>
+
+			{showSettings && (
 				<Widget
-					title="Инструкция по сборке"
-					initialPosition={{ x: 10, y: 70 }}
-					minWidth={500}
+					title="Настройки"
+					initialPosition={{
+						x: window.innerWidth - 410,
+						y: window.innerHeight - 400,
+					}}
+					minWidth={400}
 				>
-					<InstructionViewer
-						instructions={instructions}
-						currentStep={currentStep}
-						onStepChange={setCurrentStep}
-						onVisibilityChange={handleVisibilityChange}
-						onPartFocus={handlePartFocus}
-						onStepPartsFocus={handleStepPartsFocus}
-						showToast={showToast}
-						highlightEnabled={highlightEnabled}
-						onHighlightEnabledChange={handleHighlightEnabledChange}
-						highlightColor={highlightColor}
-						onHighlightColorChange={handleHighlightColorChange}
-						previousStepsTransparency={previousStepsTransparency}
-						onPreviousStepsTransparencyChange={
-							handlePreviousStepsTransparencyChange
-						}
-						previousStepsOpacity={previousStepsOpacity}
-						onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
-						autoRotationEnabled={autoRotationEnabled}
-						onAutoRotationChange={handleAutoRotationChange}
+					<div className="p-4">
+						<InstructionSettings
+							highlightEnabled={highlightEnabled}
+							onHighlightEnabledChange={handleHighlightEnabledChange}
+							highlightColor={highlightColor}
+							onHighlightColorChange={handleHighlightColorChange}
+							previousStepsTransparency={previousStepsTransparency}
+							onPreviousStepsTransparencyChange={
+								handlePreviousStepsTransparencyChange
+							}
+							previousStepsOpacity={previousStepsOpacity}
+							onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
+							autoRotationEnabled={autoRotationEnabled}
+							onAutoRotationChange={handleAutoRotationChange}
+							backgroundColor={backgroundColor}
+							onBackgroundColorChange={handleBackgroundColorChange}
+						/>
+					</div>
+				</Widget>
+			)}
+
+			{/* Parts Selector Widget */}
+			{showPartsSelector && (
+				<Widget
+					title="Выбор деталей"
+					initialPosition={{ x: 520, y: 70 }}
+					minWidth={300}
+				>
+					<PartsSelector
+						availableParts={Object.keys(modelParts || {})}
+						selectedParts={selectedPartIds}
+						onPartsChange={handlePartsChange}
+						onClose={handlePartsSelectorClose}
 						truncateName={truncateName}
-						backgroundColor={backgroundColor}
-						onBackgroundColorChange={handleBackgroundColorChange}
 					/>
 				</Widget>
 			)}
@@ -489,5 +572,3 @@ export default function ModelConstructor({
 		</div>
 	);
 }
-
-// Функция для определения, является ли цвет светлым (для выбора контрастного текста)

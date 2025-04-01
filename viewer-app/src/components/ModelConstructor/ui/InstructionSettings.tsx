@@ -61,7 +61,7 @@ const InstructionSettings: React.FC<InstructionSettingsProps> = ({
 	};
 
 	return (
-		<div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+		<div className="">
 			<h4 className="font-medium text-sm mb-3 text-gray-800 flex items-center gap-1.5">
 				<IoColorWandOutline size={18} />
 				Настройки отображения

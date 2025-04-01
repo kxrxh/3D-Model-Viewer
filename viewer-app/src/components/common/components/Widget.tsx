@@ -146,14 +146,14 @@ const Widget = ({
 			}}
 		>
 			<div
-				className={`bg-white rounded-lg shadow-xl border border-gray-200
+				className={`bg-white/80 backdrop-blur-md rounded-lg shadow-xl border border-white/20
                    flex flex-col overflow-hidden transform transition-all duration-300 relative
                    ${isDragging ? "shadow-2xl scale-[1.01]" : ""}`}
 			>
 				{/* Header / Drag handle */}
 				<div
 					ref={headerRef}
-					className="px-4 py-3 bg-red-700 text-white flex items-center justify-between cursor-grab"
+					className="px-4 py-3 bg-red-700/90 backdrop-blur-sm text-white flex items-center justify-between cursor-grab"
 					onMouseDown={handleMouseDown}
 				>
 					<h3 className="font-medium text-sm truncate">{title}</h3>
@@ -162,7 +162,7 @@ const Widget = ({
 							<button
 								type="button"
 								onClick={() => setIsCollapsed(!isCollapsed)}
-								className="p-1 rounded-full hover:bg-red-600 transition-colors"
+								className="p-1 rounded-full hover:bg-red-600/80 transition-colors"
 								aria-label={isCollapsed ? "Expand" : "Collapse"}
 							>
 								{isCollapsed ? (
@@ -177,11 +177,11 @@ const Widget = ({
 
 				{/* Content */}
 				<div
-					className="overflow-y-auto transition-all duration-300 ease-in-out"
+					className="overflow-y-auto transition-all duration-300 ease-in-out bg-white/50 backdrop-blur-sm"
 					style={{
 						maxHeight: isCollapsed ? "0" : "70vh",
 						minHeight: isCollapsed ? "0" : minHeight,
-						padding: isCollapsed ? "0 1rem" : "1rem",
+						padding: isCollapsed ? "0" : "0",
 						opacity: isCollapsed ? 0 : 1,
 						pointerEvents: isCollapsed ? "none" : "auto",
 					}}
@@ -192,7 +192,7 @@ const Widget = ({
 				{/* Resize handle */}
 				<div
 					ref={resizeHandleRef}
-					className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize"
+					className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-white/20 transition-colors"
 					onMouseDown={handleResizeMouseDown}
 					style={{
 						height: "100%",
