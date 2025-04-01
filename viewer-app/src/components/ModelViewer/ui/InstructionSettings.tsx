@@ -6,12 +6,12 @@ import {
 	IoRefreshOutline,
 	IoBrushOutline,
 } from "react-icons/io5";
-import { isLightColor } from "../utils";
+import { isLightColor } from "../../common/utils";
 import {
 	DEFAULT_HIGHLIGHT_COLOR,
 	DEFAULT_PREVIOUS_STEPS_OPACITY,
 	DEFAULT_BACKGROUND_COLOR,
-} from "../utils/constants";
+} from "../../common/utils/constants";
 
 interface InstructionSettingsProps {
 	highlightEnabled: boolean;

@@ -1,5 +1,5 @@
 import FileUploader from "./FileUploader";
-import { ApplicationMode } from "./types";
+import { ApplicationMode } from "../types";
 
 interface StartPageProps {
 	onModelUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -24,11 +24,12 @@ const StartPage: React.FC<StartPageProps> = ({
 	mode,
 	onModeChange,
 	onContinue,
-	userConfirmed
+	userConfirmed,
 }) => {
-	const canContinue = mode === ApplicationMode.CONSTRUCTOR 
-		? hasModel 
-		: (hasModel && hasInstructions);
+	const canContinue =
+		mode === ApplicationMode.CONSTRUCTOR
+			? hasModel
+			: hasModel && hasInstructions;
 
 	return (
 		<div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-black to-red-950">
@@ -37,7 +38,7 @@ const StartPage: React.FC<StartPageProps> = ({
 				<div className="absolute top-[5%] left-[15%] w-96 h-96 bg-red-700 rounded-full mix-blend-soft-light filter blur-3xl opacity-20 animate-blob" />
 				<div className="absolute top-[25%] right-[15%] w-96 h-96 bg-red-700 rounded-full mix-blend-soft-light filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
 				<div className="absolute bottom-[15%] left-[35%] w-96 h-96 bg-red-700 rounded-full mix-blend-soft-light filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
-				
+
 				{/* Additional subtle background elements */}
 				<div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(200,0,0,0.1),transparent_50%)]" />
 				<div className="absolute inset-0 backdrop-blur-[100px]" />
@@ -86,7 +87,9 @@ const StartPage: React.FC<StartPageProps> = ({
 						</div>
 
 						<div className="space-y-4">
-							<h2 className="text-lg font-semibold text-white">Загрузка файлов</h2>
+							<h2 className="text-lg font-semibold text-white">
+								Загрузка файлов
+							</h2>
 							<div className="space-y-4">
 								<FileUploader
 									id="model-upload"
@@ -96,10 +99,15 @@ const StartPage: React.FC<StartPageProps> = ({
 									isUploaded={hasModel}
 								/>
 
-								{(mode === ApplicationMode.VIEWER || mode === ApplicationMode.CONSTRUCTOR) && (
+								{(mode === ApplicationMode.VIEWER ||
+									mode === ApplicationMode.CONSTRUCTOR) && (
 									<FileUploader
 										id="instruction-upload"
-										label={mode === ApplicationMode.VIEWER ? "Инструкция (обязательно)" : "Инструкция (опционально)"}
+										label={
+											mode === ApplicationMode.VIEWER
+												? "Инструкция (обязательно)"
+												: "Инструкция (опционально)"
+										}
 										accept=".json"
 										onChange={onInstructionUpload}
 										isUploaded={hasInstructions}
@@ -111,7 +119,9 @@ const StartPage: React.FC<StartPageProps> = ({
 										<div className="w-full border-t border-white/10" />
 									</div>
 									<div className="relative flex justify-center text-sm">
-										<span className="px-2 backdrop-blur-md bg-black/30 text-white">или</span>
+										<span className="px-2 backdrop-blur-md bg-black/30 text-white">
+											или
+										</span>
 									</div>
 								</div>
 

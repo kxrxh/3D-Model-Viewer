@@ -45,6 +45,19 @@ function Model({
 			if (child instanceof THREE.Mesh && child.material) {
 				// Store original materials for later restoration
 				if (!originalMaterials.current.has(child)) {
+					const material =
+						child.material instanceof THREE.Material
+							? child.material
+							: Array.isArray(child.material)
+								? child.material[0]
+								: null;
+
+					if (material?.map) {
+						material.map.flipY = false;
+						material.map.premultiplyAlpha = false;
+						material.needsUpdate = true;
+					}
+
 					originalMaterials.current.set(child, child.material.clone());
 				}
 
@@ -150,6 +163,16 @@ function Model({
 							material = originalMaterial[0].clone();
 						} else {
 							material = originalMaterial.clone();
+						}
+
+						// Configure material textures
+						if (
+							material instanceof THREE.MeshStandardMaterial &&
+							material.map
+						) {
+							material.map.flipY = false;
+							material.map.premultiplyAlpha = false;
+							material.map.needsUpdate = true;
 						}
 
 						// Apply highlight if enabled and part is in current step

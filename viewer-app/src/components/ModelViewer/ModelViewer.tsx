@@ -21,20 +21,25 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { LoadingSpinner, Toast, ToastContainer } from "../common";
-import { Model } from "./core";
-import PartFocusController from "./controls/PartFocusController";
+import { Model } from "../common/core";
+import PartFocusController from "../common/controls/PartFocusController";
 import { InstructionViewer } from "./ui";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { MdKeyboardArrowLeft } from "react-icons/md";
 
-import { useModelState, usePerformanceProfiles, useToast } from "./hooks";
+import { useModelState } from "./hooks";
+import { usePerformanceProfiles, useToast } from "../common/hooks";
 
-import { Widget } from "./components";
-import { ControlPanel, PerformanceProfileSelector } from "./ui";
+import { Widget } from "../common/components";
+import { ControlPanel } from "./ui";
+import { PerformanceProfileSelector } from "../common/ui";
 
-import type { InstructionStep } from "./types";
+import type { InstructionStep } from "../common/types";
 
-import { DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET } from "./utils";
+import {
+	DEFAULT_CAMERA_POSITION,
+	DEFAULT_CAMERA_TARGET,
+} from "../common/utils";
 
 // Performance settings
 THREE.Cache.enabled = true;
@@ -84,7 +89,6 @@ export default function ModelViewer({
 		setCurrentStepParts,
 		selectedParts,
 		setSelectedParts,
-		resetModelState,
 		handleModelLoad,
 		handlePartFound,
 	} = modelState;
@@ -286,7 +290,10 @@ export default function ModelViewer({
 						profiles[activeProfile as keyof typeof profiles].gl.antialias,
 					precision:
 						profiles[activeProfile as keyof typeof profiles].gl.precision,
+					preserveDrawingBuffer: true,
+					logarithmicDepthBuffer: true,
 				}}
+				style={{ width: "100%", height: "100%" }}
 				shadows={profiles[activeProfile as keyof typeof profiles].shadows}
 				onCreated={({ gl }) => {
 					gl.setClearColor(new THREE.Color("#E2E8F0"), 1);
@@ -295,6 +302,20 @@ export default function ModelViewer({
 						profiles[
 							activeProfile as keyof typeof profiles
 						].physicallyCorrectLights;
+
+					// Configure texture handling
+					const glContext = gl.getContext();
+					if (glContext) {
+						glContext.pixelStorei(glContext.UNPACK_FLIP_Y_WEBGL, false);
+						glContext.pixelStorei(
+							glContext.UNPACK_PREMULTIPLY_ALPHA_WEBGL,
+							false,
+						);
+
+						// Ensure viewport matches canvas size
+						const canvas = gl.domElement;
+						glContext.viewport(0, 0, canvas.width, canvas.height);
+					}
 				}}
 			>
 				<color attach="background" args={[backgroundColor]} />
@@ -303,8 +324,6 @@ export default function ModelViewer({
 					<PerformanceMonitor
 						onIncline={() => handlePerformanceChange(true)}
 						onDecline={() => handlePerformanceChange(false)}
-						// @ts-ignore - bounds prop exists in drei but TS definition might be wrong
-						bounds={[45, 60]}
 						flipflops={3}
 					/>
 				)}

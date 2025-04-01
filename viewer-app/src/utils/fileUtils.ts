@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import type { InstructionStep } from "../components/ModelViewer/types";
+import type { InstructionStep } from "../components/common/types";
 
 const MAX_MODEL_SIZE = 100 * 1024 * 1024; // 100MB limit
 

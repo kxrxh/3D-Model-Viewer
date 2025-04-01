@@ -1,12 +1,5 @@
 import type * as THREE from "three";
 
-export interface InstructionStep {
-	id: number;
-	name: string;
-	parts: string[];
-	description?: string;
-}
-
 export interface ModelState {
 	modelParts: Record<string, boolean>;
 	visibleParts: Record<string, boolean>;

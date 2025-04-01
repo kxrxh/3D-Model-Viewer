@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import ModelViewer from "./components/ModelViewer";
-import StartPage from "./components/StartPage";
-import type { InstructionStep } from "./components/ModelViewer/types";
+import StartPage from "./components/ui/StartPage";
+import type { InstructionStep } from "./components/common/types";
 import {
 	validateModelFile,
 	validateInstructionFile,
@@ -162,8 +162,12 @@ function App() {
 	}, []);
 
 	// Determine if we should show the viewer or uploader
-	const showViewer = userConfirmed && modelUrl && 
-		(mode === ApplicationMode.CONSTRUCTOR ? hasModel : (hasModel && hasInstructions));
+	const showViewer =
+		userConfirmed &&
+		modelUrl &&
+		(mode === ApplicationMode.CONSTRUCTOR
+			? hasModel
+			: hasModel && hasInstructions);
 
 	return (
 		<div className="w-full h-screen relative bg-gradient-to-br from-slate-100 to-slate-200">

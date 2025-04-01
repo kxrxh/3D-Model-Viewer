@@ -10,15 +10,6 @@ export function useModelState() {
 	const [modelUrl, setModelUrl] = useState<string | null>(null);
 	const isInitialized = useRef(false);
 
-	const resetModelState = useCallback(() => {
-		isInitialized.current = false;
-		setModelParts({});
-		setVisibleParts({});
-		setCurrentStepParts([]);
-		setMeshes({});
-		setSelectedParts([]);
-	}, []);
-
 	const handleModelLoad = useCallback((parts: Record<string, boolean>) => {
 		if (!isInitialized.current) {
 			setModelParts(parts);
@@ -46,7 +37,6 @@ export function useModelState() {
 		modelUrl,
 		setModelUrl,
 		isInitialized,
-		resetModelState,
 		handleModelLoad,
 		handlePartFound,
 	};

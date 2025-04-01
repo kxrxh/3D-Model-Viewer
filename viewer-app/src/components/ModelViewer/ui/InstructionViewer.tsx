@@ -20,7 +20,7 @@ import {
 	DEFAULT_HIGHLIGHT_COLOR,
 	DEFAULT_PREVIOUS_STEPS_OPACITY,
 	DEFAULT_BACKGROUND_COLOR,
-} from "../utils/constants";
+} from "../../common/utils/constants";
 
 interface InstructionStep {
 	id: number;
