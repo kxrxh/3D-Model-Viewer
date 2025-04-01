@@ -11,7 +11,7 @@ services:
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_data:/etc/traefik
+      - ./traefik:/etc/traefik
     networks:
       - web
     command:
@@ -25,6 +25,8 @@ services:
       - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
       - "--certificatesresolvers.myresolver.acme.email=admin@assembly3d.ru"
       - "--certificatesresolvers.myresolver.acme.storage=/etc/traefik/acme.json"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
       - "--log.level=DEBUG"
 
   app:
