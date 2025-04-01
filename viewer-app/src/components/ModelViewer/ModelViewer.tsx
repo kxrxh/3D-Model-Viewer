@@ -5,8 +5,9 @@ import {
 	useEffect,
 	useMemo,
 	Suspense,
+	type Dispatch,
+	type SetStateAction,
 } from "react";
-import type React from "react";
 import { Canvas } from "@react-three/fiber";
 import {
 	OrbitControls,
@@ -23,9 +24,7 @@ import { LoadingSpinner, Toast, ToastContainer } from "../common";
 import { Model } from "./core";
 import PartFocusController from "./controls/PartFocusController";
 import { InstructionViewer } from "./ui";
-import StartPage from "./StartPage";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import JSZip from "jszip";
 import { MdKeyboardArrowLeft } from "react-icons/md";
 
 import { useModelState, usePerformanceProfiles, useToast } from "./hooks";
@@ -48,16 +47,27 @@ const truncateName = (name: string, maxLength = 35) => {
 		: shortName;
 };
 
-export default function ModelViewer() {
+interface ModelViewerProps {
+	modelUrl: string | null;
+	instructions: InstructionStep[];
+	isLoading: boolean;
+	setIsLoading: Dispatch<SetStateAction<boolean>>;
+	onReset: () => void;
+}
+
+export default function ModelViewer({
+	modelUrl,
+	instructions,
+	isLoading,
+	setIsLoading,
+	onReset,
+}: ModelViewerProps) {
 	const modelState = useModelState();
 	const performanceState = usePerformanceProfiles();
 	const { toasts, showToast, hideToast } = useToast();
 
 	// Add state for instructions
-	const [instructions, setInstructions] = useState<InstructionStep[]>([]);
 	const [currentStep, setCurrentStep] = useState<number>(0);
-	const [hasInstructions, setHasInstructions] = useState<boolean>(false);
-	const [hasModel, setHasModel] = useState<boolean>(false);
 	const [highlightColor, setHighlightColor] = useState<string>("#f87171"); // Default to a light red color
 	const [highlightEnabled, setHighlightEnabled] = useState<boolean>(true);
 	const [previousStepsTransparency, setPreviousStepsTransparency] =
@@ -72,8 +82,6 @@ export default function ModelViewer() {
 		setVisibleParts,
 		currentStepParts,
 		setCurrentStepParts,
-		modelUrl,
-		setModelUrl,
 		selectedParts,
 		setSelectedParts,
 		resetModelState,
@@ -91,203 +99,9 @@ export default function ModelViewer() {
 	} = performanceState;
 
 	// Component state
-	const [isLoading, setIsLoading] = useState(false);
 	const [showStats, setShowStats] = useState(false);
 	const controlsRef = useRef<OrbitControlsImpl>(null);
 	const sceneRef = useRef(null);
-
-	const handleModelUpload = useCallback(
-		(event: React.ChangeEvent<HTMLInputElement>) => {
-			const file = event.target.files?.[0];
-			if (file) {
-				// Clean up previous object URL if exists
-				if (modelUrl) URL.revokeObjectURL(modelUrl);
-
-				const url = URL.createObjectURL(file);
-				setModelUrl(url);
-				setIsLoading(true);
-				setHasModel(true);
-
-				// Reset model states
-				resetModelState();
-
-				console.log(
-					`Загружена модель: ${file.name}, размер: ${(file.size / 1024 / 1024).toFixed(2)} МБ`,
-				);
-			}
-		},
-		[modelUrl, resetModelState, setModelUrl],
-	);
-
-	const handleMultiUpload = useCallback(
-		async (event: React.ChangeEvent<HTMLInputElement>) => {
-			const files = event.target.files;
-			if (!files || files.length === 0) return;
-
-			// Проверяем наличие модели и инструкций
-			let modelFile: File | null = null;
-			let instructionFile: File | null = null;
-			let zipFile: File | null = null;
-
-			// Сначала ищем файлы по типам
-			for (let i = 0; i < files.length; i++) {
-				const file = files[i];
-				const fileName = file.name.toLowerCase();
-
-				if (fileName.endsWith(".glb") || fileName.endsWith(".gltf")) {
-					modelFile = file;
-				} else if (fileName.endsWith(".json")) {
-					instructionFile = file;
-				} else if (fileName.endsWith(".zip")) {
-					zipFile = file;
-				}
-			}
-
-			// Обрабатываем архив ZIP, если он найден
-			if (zipFile) {
-				try {
-					const zip = new JSZip();
-					const zipContent = await zip.loadAsync(zipFile);
-
-					// Ищем модели и инструкции в архиве
-					for (const [fileName, fileData] of Object.entries(zipContent.files)) {
-						if (fileData.dir) continue; // Пропускаем директории
-
-						const lowerFileName = fileName.toLowerCase();
-
-						// Найдена модель в архиве
-						if (
-							lowerFileName.endsWith(".glb") ||
-							lowerFileName.endsWith(".gltf")
-						) {
-							if (!modelFile) {
-								// Берем только если еще не нашли модель
-								const blob = await fileData.async("blob");
-								modelFile = new File([blob], fileName, {
-									type: lowerFileName.endsWith(".glb")
-										? "model/gltf-binary"
-										: "model/gltf+json",
-								});
-								console.log(`Извлечена модель из архива: ${fileName}`);
-							}
-						}
-						// Найдены инструкции в архиве
-						else if (lowerFileName.endsWith(".json")) {
-							if (!instructionFile) {
-								// Берем только если еще не нашли инструкции
-								const blob = await fileData.async("blob");
-								instructionFile = new File([blob], fileName, {
-									type: "application/json",
-								});
-								console.log(`Извлечены инструкции из архива: ${fileName}`);
-							}
-						}
-					}
-
-					if (!modelFile && !instructionFile) {
-						showToast(
-							"В архиве не найдено ни моделей (.glb/.gltf), ни инструкций (.json)",
-							"error",
-						);
-					}
-				} catch (error) {
-					console.error("Ошибка при распаковке архива:", error);
-					showToast(
-						"Ошибка при распаковке архива. Проверьте, что файл не поврежден.",
-						"error",
-					);
-				}
-			}
-
-			// Загрузка найденной модели
-			if (modelFile) {
-				// Clean up previous object URL if exists
-				if (modelUrl) URL.revokeObjectURL(modelUrl);
-
-				const url = URL.createObjectURL(modelFile);
-				setModelUrl(url);
-				setIsLoading(true);
-				setHasModel(true);
-
-				// Reset model states
-				resetModelState();
-
-				console.log(
-					`Загружена модель: ${modelFile.name}, размер: ${(modelFile.size / 1024 / 1024).toFixed(2)} МБ`,
-				);
-			}
-
-			// Загрузка найденных инструкций
-			if (instructionFile) {
-				const reader = new FileReader();
-				reader.onload = (e) => {
-					try {
-						const jsonData = JSON.parse(e.target?.result as string);
-						// Check if it has the expected structure
-						if (
-							jsonData.assemblyStages &&
-							Array.isArray(jsonData.assemblyStages)
-						) {
-							setInstructions(jsonData.assemblyStages);
-							setHasInstructions(true);
-							setCurrentStep(0); // Start at step 0 (full model view)
-							console.log(
-								`Загружены инструкции: ${instructionFile?.name}, шагов: ${jsonData.assemblyStages.length}`,
-							);
-						} else {
-							showToast("Формат инструкции не распознан", "error");
-							setInstructions([]);
-							setHasInstructions(false);
-						}
-					} catch (error) {
-						console.error("Error parsing JSON:", error);
-						showToast("Ошибка при чтении файла инструкции", "error");
-					}
-				};
-				reader.readAsText(instructionFile);
-			}
-
-			if (!modelFile && !instructionFile && !zipFile) {
-				showToast(
-					"Не найдено ни моделей (.glb/.gltf), ни инструкций (.json), ни архивов (.zip)",
-					"error",
-				);
-			}
-		},
-		[modelUrl, resetModelState, setModelUrl, showToast],
-	);
-
-	const handleInstructionUpload = useCallback(
-		(event: React.ChangeEvent<HTMLInputElement>) => {
-			const file = event.target.files?.[0];
-			if (file) {
-				const reader = new FileReader();
-				reader.onload = (e) => {
-					try {
-						const jsonData = JSON.parse(e.target?.result as string);
-						// Check if it has the expected structure
-						if (
-							jsonData.assemblyStages &&
-							Array.isArray(jsonData.assemblyStages)
-						) {
-							setInstructions(jsonData.assemblyStages);
-							setHasInstructions(true);
-							setCurrentStep(0);
-						} else {
-							showToast("Формат инструкции не распознан", "error");
-							setInstructions([]);
-							setHasInstructions(false);
-						}
-					} catch (error) {
-						console.error("Error parsing JSON:", error);
-						showToast("Ошибка при чтении файла инструкции", "error");
-					}
-				};
-				reader.readAsText(file);
-			}
-		},
-		[showToast],
-	);
 
 	// Update currentStepParts when currentStep changes
 	useEffect(() => {
@@ -442,7 +256,7 @@ export default function ModelViewer() {
 				setVisibleParts(initialVisibleParts);
 			}
 		}
-	}, [modelParts, currentStep, setVisibleParts]);
+	}, [modelParts, currentStep, setVisibleParts, setIsLoading]);
 
 	// Clean up object URL on unmount
 	useEffect(() => {
@@ -576,91 +390,71 @@ export default function ModelViewer() {
 		],
 	);
 
-	// Determine if we should show the viewer or uploader
-	const showViewer = hasModel && modelUrl && hasInstructions;
-
 	return (
 		<div className="w-full h-screen relative bg-gradient-to-br from-slate-100 to-slate-200">
-			{!showViewer && (
-				<StartPage
-					onModelUpload={handleModelUpload}
-					onInstructionUpload={handleInstructionUpload}
-					onMultiUpload={handleMultiUpload}
-					hasModel={hasModel}
-					hasInstructions={hasInstructions}
+			{isLoading && <LoadingSpinner text="Загрузка модели..." />}
+
+			<ControlPanel
+				resetView={resetView}
+				showStats={showStats}
+				setShowStats={setShowStats}
+			/>
+
+			<div className="absolute top-2.5 right-2.5 z-10">
+				<PerformanceProfileSelector
+					profiles={profiles}
+					activeProfile={activeProfile}
+					setActiveProfile={setActiveProfile}
 				/>
-			)}
+			</div>
 
-			{showViewer && (
-				<>
-					{isLoading && <LoadingSpinner text="Загрузка модели..." />}
-
-					<ControlPanel
-						resetView={resetView}
-						showStats={showStats}
-						setShowStats={setShowStats}
+			{instructions.length > 0 && (
+				<Widget
+					title="Инструкция по сборке"
+					initialPosition={{ x: 10, y: 70 }}
+					minWidth={500}
+				>
+					<InstructionViewer
+						instructions={instructions}
+						currentStep={currentStep}
+						onStepChange={setCurrentStep}
+						onVisibilityChange={handleVisibilityChange}
+						onPartFocus={handlePartFocus}
+						onStepPartsFocus={handleStepPartsFocus}
+						showToast={showToast}
+						highlightEnabled={highlightEnabled}
+						onHighlightEnabledChange={handleHighlightEnabledChange}
+						highlightColor={highlightColor}
+						onHighlightColorChange={handleHighlightColorChange}
+						previousStepsTransparency={previousStepsTransparency}
+						onPreviousStepsTransparencyChange={
+							handlePreviousStepsTransparencyChange
+						}
+						previousStepsOpacity={previousStepsOpacity}
+						onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
+						autoRotationEnabled={autoRotationEnabled}
+						onAutoRotationChange={handleAutoRotationChange}
+						truncateName={truncateName}
+						backgroundColor={backgroundColor}
+						onBackgroundColorChange={handleBackgroundColorChange}
 					/>
-
-					<div className="absolute top-2.5 right-2.5 z-10">
-						<PerformanceProfileSelector
-							profiles={profiles}
-							activeProfile={activeProfile}
-							setActiveProfile={setActiveProfile}
-						/>
-					</div>
-
-					{hasInstructions && instructions.length > 0 && (
-						<Widget
-							title="Инструкция по сборке"
-							initialPosition={{ x: 10, y: 70 }}
-							minWidth={500}
-						>
-							<InstructionViewer
-								instructions={instructions}
-								currentStep={currentStep}
-								onStepChange={setCurrentStep}
-								onVisibilityChange={handleVisibilityChange}
-								onPartFocus={handlePartFocus}
-								onStepPartsFocus={handleStepPartsFocus}
-								showToast={showToast}
-								highlightEnabled={highlightEnabled}
-								onHighlightEnabledChange={handleHighlightEnabledChange}
-								highlightColor={highlightColor}
-								onHighlightColorChange={handleHighlightColorChange}
-								previousStepsTransparency={previousStepsTransparency}
-								onPreviousStepsTransparencyChange={
-									handlePreviousStepsTransparencyChange
-								}
-								previousStepsOpacity={previousStepsOpacity}
-								onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
-								autoRotationEnabled={autoRotationEnabled}
-								onAutoRotationChange={handleAutoRotationChange}
-								truncateName={truncateName}
-								backgroundColor={backgroundColor}
-								onBackgroundColorChange={handleBackgroundColorChange}
-							/>
-						</Widget>
-					)}
-
-					<button
-						type="button"
-						onClick={() => {
-							if (modelUrl) URL.revokeObjectURL(modelUrl);
-							setModelUrl(null);
-							setInstructions([]);
-							setHasInstructions(false);
-							setHasModel(false);
-							resetModelState();
-						}}
-						className="absolute bottom-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 z-10 flex items-center gap-2"
-					>
-						<MdKeyboardArrowLeft size={20} title="Back" />
-						Загрузить другую модель
-					</button>
-
-					{Scene3D}
-				</>
+				</Widget>
 			)}
+
+			<button
+				type="button"
+				onClick={() => {
+					if (modelUrl) URL.revokeObjectURL(modelUrl);
+					setIsLoading(true);
+					onReset();
+				}}
+				className="absolute bottom-2.5 left-2.5 px-6 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 z-10 flex items-center gap-2"
+			>
+				<MdKeyboardArrowLeft size={20} title="Back" />
+				Загрузить другую модель
+			</button>
+
+			{Scene3D}
 
 			{/* Toast Container */}
 			<ToastContainer>

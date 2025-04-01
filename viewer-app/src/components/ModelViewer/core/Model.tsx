@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -25,7 +25,14 @@ function Model({
 	onLoad,
 	onPartFound,
 }: ModelProps) {
-	const { scene } = useGLTF(url, true);
+	// Preload the model to ensure it's loaded before rendering
+	useGLTF.preload(url);
+
+	// Load the model with error handling
+	const { scene } = useGLTF(url, true, undefined, (error) => {
+		console.error("Error loading model:", error);
+	});
+
 	const initialized = useRef(false);
 	const meshToPath = useRef<Record<string, string>>({});
 	const originalMaterials = useRef<
@@ -34,27 +41,40 @@ function Model({
 
 	// Apply material and geometry settings to meshes
 	useEffect(() => {
-		scene.traverse((child) => {
+		for (const child of scene.children) {
 			if (child instanceof THREE.Mesh && child.material) {
 				// Store original materials for later restoration
 				if (!originalMaterials.current.has(child)) {
 					originalMaterials.current.set(child, child.material.clone());
 				}
 
-				child.material.side = THREE.DoubleSide;
-				child.material.depthWrite = true;
-				child.material.depthTest = true;
-				child.material.polygonOffset = true;
-				child.material.polygonOffsetFactor = 1;
-				child.material.polygonOffsetUnits = 1;
-				child.material.needsUpdate = true;
+				// Apply material settings
+				if (child.material instanceof THREE.Material) {
+					child.material.side = THREE.DoubleSide;
+					child.material.depthWrite = true;
+					child.material.depthTest = true;
+					child.material.polygonOffset = true;
+					child.material.polygonOffsetFactor = 1;
+					child.material.polygonOffsetUnits = 1;
+					child.material.needsUpdate = true;
+				} else if (Array.isArray(child.material)) {
+					for (const mat of child.material) {
+						mat.side = THREE.DoubleSide;
+						mat.depthWrite = true;
+						mat.depthTest = true;
+						mat.polygonOffset = true;
+						mat.polygonOffsetFactor = 1;
+						mat.polygonOffsetUnits = 1;
+						mat.needsUpdate = true;
+					}
+				}
 			}
 			if (child instanceof THREE.Mesh && child.geometry) {
 				child.geometry.computeBoundingSphere();
 				child.geometry.computeBoundingBox();
 			}
 			child.renderOrder = 0;
-		});
+		}
 	}, [scene]);
 
 	// Initialize model: map meshes to paths and find groups/meshes
@@ -64,9 +84,9 @@ function Model({
 			meshToPath.current = {};
 
 			// Function to get the full path of an object (based on parent hierarchy)
-			const getFullPath = (object: THREE.Object3D) => {
+			const getFullPath = (object: THREE.Object3D | null): string => {
 				const path: string[] = [];
-				let current: THREE.Object3D | null = object;
+				let current = object;
 				while (current && current !== scene) {
 					if (!(current instanceof THREE.Mesh)) {
 						// Only include group names in the path
@@ -81,14 +101,13 @@ function Model({
 			const meshRefs: Record<string, THREE.Mesh> = {};
 			scene.traverse((child) => {
 				if (child instanceof THREE.Mesh) {
-					const parent = child.parent;
-					const fullPath = parent ? getFullPath(parent) : "";
+					const fullPath = getFullPath(child.parent);
 					if (fullPath) {
 						meshToPath.current[child.uuid] = fullPath;
 						parts[fullPath] = true;
 						// Store the mesh itself under the path, not just the group
 						if (!meshRefs[fullPath]) {
-							meshRefs[fullPath] = child;
+							meshRefs[fullPath] = child; // Reference the mesh directly
 						}
 					} else {
 						// Handle root-level meshes (no parent groups)
@@ -106,117 +125,55 @@ function Model({
 		}
 	}, [scene, onLoad, onPartFound]);
 
-	// Функция для проверки, поддерживает ли материал цвет и эмиссию
-	const applyColorToMaterial = useCallback(
-		(material: THREE.Material, color: THREE.Color, emissiveIntensity = 0.2) => {
-			// Проверяем, является ли материал типом, поддерживающим свойство color
-			if (
-				material instanceof THREE.MeshStandardMaterial ||
-				material instanceof THREE.MeshPhongMaterial ||
-				material instanceof THREE.MeshLambertMaterial ||
-				material instanceof THREE.MeshBasicMaterial
-			) {
-				material.color.copy(color);
-
-				// Проверяем поддержку эмиссии
-				if (
-					"emissive" in material &&
-					material.emissive instanceof THREE.Color
-				) {
-					material.emissive.copy(
-						color.clone().multiplyScalar(emissiveIntensity),
-					);
-				}
-			}
-
-			// Для любого типа материала
-			if (material.transparent !== undefined) {
-				material.transparent = false;
-			}
-			if (material.opacity !== undefined) {
-				material.opacity = 1.0;
-			}
-		},
-		[],
-	);
-
-	// Функция для применения прозрачности к материалу
-	const applyTransparencyToMaterial = useCallback(
-		(material: THREE.Material, opacity: number) => {
-			if (material.transparent !== undefined) {
-				material.transparent = true;
-			}
-			if (material.opacity !== undefined) {
-				material.opacity = opacity;
-			}
-			if (material.depthWrite !== undefined) {
-				material.depthWrite = true;
-			}
-		},
-		[],
-	);
-
-	// Update visibility and highlight current step parts
+	// Update visibility and materials of meshes based on current state
 	useEffect(() => {
-		// Преобразуем цвет из HEX в THREE.Color
-		const highlightThreeColor = new THREE.Color(highlightColor);
-
 		scene.traverse((child) => {
 			if (child instanceof THREE.Mesh) {
 				const fullPath = meshToPath.current[child.uuid];
 				if (fullPath) {
-					// Устанавливаем видимость на основе visibleParts
-					child.visible = visibleParts[fullPath] !== false;
+					// Determine if this part is in the current step
+					const isInCurrentStep = currentStepParts.includes(fullPath);
+					// Determine if this part should be visible
+					const isVisible = visibleParts[fullPath] !== false;
 
-					if (child.visible) {
-						// Проверяем, является ли деталь частью текущего шага
-						const isCurrentStepPart = currentStepParts.includes(fullPath);
+					// Set visibility
+					child.visible = isVisible;
 
-						// Получаем оригинальный материал
+					if (isVisible) {
+						// Get the original material
 						const originalMaterial = originalMaterials.current.get(child);
+						if (!originalMaterial) return;
 
-						if (originalMaterial) {
-							// Create a new material to work with
-							let newMaterial: THREE.Material | THREE.Material[];
-							if (Array.isArray(originalMaterial)) {
-								// For meshes with multiple materials
-								newMaterial = originalMaterial.map((mat) => mat.clone());
-							} else {
-								// For meshes with a single material
-								newMaterial = originalMaterial.clone();
-							}
-
-							// Apply highlight to current step parts if enabled
-							if (isCurrentStepPart && highlightEnabled) {
-								if (Array.isArray(newMaterial)) {
-									for (const mat of newMaterial) {
-										applyColorToMaterial(mat, highlightThreeColor);
-									}
-								} else {
-									applyColorToMaterial(newMaterial, highlightThreeColor);
-								}
-							}
-							// Apply transparency to previous steps if enabled
-							else if (
-								!isCurrentStepPart &&
-								previousStepsTransparency &&
-								currentStepParts.length > 0
-							) {
-								if (Array.isArray(newMaterial)) {
-									for (const mat of newMaterial) {
-										applyTransparencyToMaterial(mat, previousStepsOpacity);
-									}
-								} else {
-									applyTransparencyToMaterial(
-										newMaterial,
-										previousStepsOpacity,
-									);
-								}
-							}
-
-							// Apply the new material
-							child.material = newMaterial;
+						// Clone the original material to avoid modifying it
+						let material: THREE.Material;
+						if (Array.isArray(originalMaterial)) {
+							material = originalMaterial[0].clone();
+						} else {
+							material = originalMaterial.clone();
 						}
+
+						// Apply highlight if enabled and part is in current step
+						if (
+							highlightEnabled &&
+							isInCurrentStep &&
+							material instanceof THREE.MeshStandardMaterial
+						) {
+							material.color.set(highlightColor);
+							material.emissive.set(highlightColor).multiplyScalar(0.2);
+						}
+
+						// Apply transparency if enabled and part is from previous steps
+						if (
+							previousStepsTransparency &&
+							!isInCurrentStep &&
+							currentStepParts.length > 0
+						) {
+							material.transparent = true;
+							material.opacity = previousStepsOpacity;
+						}
+
+						// Apply the modified material
+						child.material = material;
 					}
 				} else {
 					child.visible = true; // Default for unmapped meshes
@@ -225,15 +182,48 @@ function Model({
 		});
 	}, [
 		visibleParts,
+		scene,
 		currentStepParts,
 		highlightColor,
 		highlightEnabled,
 		previousStepsTransparency,
 		previousStepsOpacity,
-		scene,
-		applyColorToMaterial,
-		applyTransparencyToMaterial,
 	]);
+
+	// Clean up resources when unmounting
+	useEffect(() => {
+		return () => {
+			// Clean up materials
+			for (const [, material] of originalMaterials.current) {
+				if (Array.isArray(material)) {
+					for (const m of material) {
+						m.dispose();
+					}
+				} else {
+					material.dispose();
+				}
+			}
+			originalMaterials.current.clear();
+
+			// Clean up geometries and materials from the scene
+			scene.traverse((child) => {
+				if (child instanceof THREE.Mesh) {
+					if (child.geometry) {
+						child.geometry.dispose();
+					}
+					if (child.material) {
+						if (Array.isArray(child.material)) {
+							for (const material of child.material) {
+								material.dispose();
+							}
+						} else {
+							child.material.dispose();
+						}
+					}
+				}
+			});
+		};
+	}, [scene]);
 
 	return <primitive object={scene} />;
 }
