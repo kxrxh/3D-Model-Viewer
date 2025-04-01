@@ -112,7 +112,7 @@ const InstructionSettings: React.FC<InstructionSettingsProps> = ({
 								previousStepsTransparency ? "text-blue-600" : "text-gray-500"
 							}
 						/>
-						Прозрачность предыдущих шагов
+						Прозрачность невыбранных деталей
 					</label>
 					<div className="flex items-center gap-1.5">
 						<span className="text-xs font-medium text-gray-500">

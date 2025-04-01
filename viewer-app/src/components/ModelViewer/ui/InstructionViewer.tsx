@@ -500,24 +500,26 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		return (
 			<div>
 				{group.name !== "root" && (
-					<button
-						type="button"
-						onClick={() => toggleGroupExpansion(currentPath)}
-						className="flex items-center gap-3 w-full text-left px-3 py-2 h-10 rounded-lg border border-gray-200 bg-gray-100 hover:bg-gray-200 mb-2"
-					>
-						<span className="text-gray-500 flex-shrink-0">
-							{isExpanded ? (
-								<IoRemoveOutline size={18} aria-label="Collapse" />
-							) : (
-								<IoAddOutline size={18} aria-label="Expand" />
-							)}
-						</span>
-						<span
-							className="font-medium text-sm truncate flex-1"
-							title={group.name}
+					<div className="flex items-center gap-3 w-full text-left px-3 py-2 h-10 rounded-lg border border-gray-200 bg-gray-100 hover:bg-gray-200 mb-2">
+						<button
+							type="button"
+							onClick={() => toggleGroupExpansion(currentPath)}
+							className="flex items-center gap-3 flex-1 min-w-0 h-full"
 						>
-							{truncateName ? truncateName(group.name) : group.name}
-						</span>
+							<span className="text-gray-500 flex-shrink-0">
+								{isExpanded ? (
+									<IoRemoveOutline size={18} aria-label="Collapse" />
+								) : (
+									<IoAddOutline size={18} aria-label="Expand" />
+								)}
+							</span>
+							<span
+								className="font-medium text-sm truncate flex-1"
+								title={group.name}
+							>
+								{truncateName ? truncateName(group.name) : group.name}
+							</span>
+						</button>
 
 						{/* Group visibility toggle */}
 						<button
@@ -553,7 +555,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 								<IoEyeOutline size={18} className="opacity-50" />
 							)}
 						</button>
-					</button>
+					</div>
 				)}
 
 				{isExpanded && (

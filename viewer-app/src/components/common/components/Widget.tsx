@@ -184,6 +184,7 @@ const Widget = ({
 						padding: isCollapsed ? "0" : "0",
 						opacity: isCollapsed ? 0 : 1,
 						pointerEvents: isCollapsed ? "none" : "auto",
+						paddingRight: "16px",
 					}}
 				>
 					{children}
@@ -192,12 +193,16 @@ const Widget = ({
 				{/* Resize handle */}
 				<div
 					ref={resizeHandleRef}
-					className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-white/20 transition-colors"
+					className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize"
 					onMouseDown={handleResizeMouseDown}
 					style={{
 						height: "100%",
 					}}
-				/>
+				>
+					<div 
+						className="absolute right-0 top-0 bottom-0 w-1 bg-transparent hover:bg-white/20 transition-colors"
+					/>
+				</div>
 			</div>
 		</div>
 	);

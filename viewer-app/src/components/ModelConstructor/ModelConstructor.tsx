@@ -81,6 +81,7 @@ export default function ModelConstructor({
 	const [previousStepsOpacity, setPreviousStepsOpacity] = useState<number>(0.4); // 40% opacity by default
 	const [autoRotationEnabled, setAutoRotationEnabled] = useState<boolean>(true); // Enable by default
 	const [backgroundColor, setBackgroundColor] = useState<string>("#E2E8F0"); // Default background
+	const [displayMode, setDisplayMode] = useState<'all' | 'selected'>('all');
 
 	const {
 		modelParts,
@@ -251,14 +252,10 @@ export default function ModelConstructor({
 	const handlePartsChange = useCallback(
 		(partIds: string[]) => {
 			setSelectedPartIds(partIds);
-			// Update visibility of parts
-			const newVisibleParts: Record<string, boolean> = {};
-			for (const partId of Object.keys(modelParts || {})) {
-				newVisibleParts[partId] = partIds.includes(partId);
-			}
-			setVisibleParts(newVisibleParts);
+			// Update current step parts for highlighting
+			setCurrentStepParts(partIds);
 		},
-		[modelParts, setVisibleParts],
+		[setCurrentStepParts],
 	);
 
 	// Handle parts selector open
@@ -271,19 +268,39 @@ export default function ModelConstructor({
 		setShowPartsSelector(false);
 	}, []);
 
+	// Update visibility based on display mode and selected parts
+	useEffect(() => {
+		if (!modelParts) return;
+
+		const newVisibleParts: Record<string, boolean> = {};
+		
+		if (displayMode === 'all') {
+			// Show all parts
+			for (const partId of Object.keys(modelParts)) {
+				newVisibleParts[partId] = true;
+			}
+		} else {
+			// Show only selected parts
+			for (const partId of Object.keys(modelParts)) {
+				newVisibleParts[partId] = selectedPartIds.includes(partId);
+			}
+		}
+		
+		setVisibleParts(newVisibleParts);
+	}, [displayMode, modelParts, selectedPartIds, setVisibleParts]);
+
+	// Handle display mode change
+	const handleDisplayModeChange = useCallback((mode: 'all' | 'selected') => {
+		setDisplayMode(mode);
+	}, []);
+
 	// Handle model loading completion
 	useEffect(() => {
 		if (modelParts && Object.keys(modelParts).length > 0) {
 			setIsLoading(false);
-
-			// Initialize with all parts visible if we're at step 0
-			const initialVisibleParts: Record<string, boolean> = {};
-			for (const part in modelParts) {
-				initialVisibleParts[part] = true;
-			}
-			setVisibleParts(initialVisibleParts);
+			// Visibility will be handled by the display mode effect
 		}
-	}, [modelParts, setVisibleParts, setIsLoading]);
+	}, [modelParts, setIsLoading]);
 
 	// Clean up object URL on unmount
 	useEffect(() => {
@@ -453,7 +470,7 @@ export default function ModelConstructor({
 			<Widget
 				title="Инструкция по сборке"
 				initialPosition={{ x: 10, y: 70 }}
-				minWidth={500}
+				minWidth={400}
 			>
 				<InstructionBuilder
 					instructions={instructions}
@@ -481,6 +498,8 @@ export default function ModelConstructor({
 					onPartsSelectorOpen={handlePartsSelectorOpen}
 					selectedParts={selectedPartIds}
 					onSelectedPartsChange={handlePartsChange}
+					displayMode={displayMode}
+					onDisplayModeChange={handleDisplayModeChange}
 				/>
 			</Widget>
 
@@ -531,14 +550,13 @@ export default function ModelConstructor({
 				<Widget
 					title="Выбор деталей"
 					initialPosition={{ x: 520, y: 70 }}
-					minWidth={300}
+					minWidth={400}
 				>
 					<PartsSelector
 						availableParts={Object.keys(modelParts || {})}
 						selectedParts={selectedPartIds}
 						onPartsChange={handlePartsChange}
 						onClose={handlePartsSelectorClose}
-						truncateName={truncateName}
 					/>
 				</Widget>
 			)}

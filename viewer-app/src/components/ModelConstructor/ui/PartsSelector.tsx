@@ -4,6 +4,7 @@ import {
 	IoCloseOutline,
 	IoRemoveOutline,
 	IoAddOutline,
+	IoCheckmarkOutline,
 } from "react-icons/io5";
 
 interface PartGroup {
@@ -24,7 +25,6 @@ interface PartsSelectorProps {
 	selectedParts: string[];
 	onPartsChange: (parts: string[]) => void;
 	onClose: () => void;
-	truncateName?: (name: string, maxLength?: number) => string;
 }
 
 const PartsSelector: React.FC<PartsSelectorProps> = ({
@@ -32,7 +32,6 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 	selectedParts,
 	onPartsChange,
 	onClose,
-	truncateName = (name) => name.split("/").pop() || name,
 }) => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [groupsExpanded, setGroupsExpanded] = useState<Record<string, boolean>>(
@@ -94,7 +93,7 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 						isGroup: true,
 						parts: [],
 						expanded:
-							groupsExpanded[segments.slice(0, i + 1).join("/")] ?? true,
+							groupsExpanded[segments.slice(0, i + 1).join("/")] ?? false,
 					};
 					currentLevel.parts.push(group);
 				}
@@ -173,11 +172,6 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		onPartsChange(newSelectedParts);
 	};
 
-	// Handle Done button click
-	const handleDone = () => {
-		onClose();
-	};
-
 	// Handle group selection
 	const handleGroupSelectionToggle = useCallback(
 		(group: PartGroup) => {
@@ -221,7 +215,7 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		level?: number;
 	}) => {
 		const currentPath = path ? `${path}/${group.name}` : group.name;
-		const isExpanded = groupsExpanded[currentPath] ?? true;
+		const isExpanded = group.name === "root" ? true : (groupsExpanded[currentPath] ?? false);
 		const groupSelectionState = getGroupSelectionState(group);
 
 		// Filter logic (keep the same)
@@ -257,16 +251,16 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		});
 
 		if (!hasVisibleContent && group.name !== "root") {
-			return null; // Don't render the group if no children match the search
+			return null;
 		}
 
 		return (
 			<div>
 				{group.name !== "root" && (
-					<div className="flex items-center gap-3 w-full text-left px-3 py-2 h-12 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 mb-3 transition-colors shadow-sm">
+					<div className="flex items-center gap-2 w-full text-left px-3 py-1.5 h-10 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 mb-2 transition-colors shadow-sm">
 						<input
 							type="checkbox"
-							className="ml-1 flex-shrink-0 custom-checkbox w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 transition-colors"
+							className="ml-1 flex-shrink-0 custom-checkbox w-4 h-4 rounded border-gray-300 text-red-700 focus:ring-red-500 transition-colors"
 							checked={groupSelectionState === "all"}
 							ref={(input) => {
 								if (input) {
@@ -275,25 +269,25 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 							}}
 							onClick={(e) => e.stopPropagation()}
 							onChange={() => handleGroupSelectionToggle(group)}
-							title={`Выбрать/Отменить выбор всех в ${group.name}`}
+							title={group.name}
 						/>
 						<button
 							type="button"
 							onClick={() => toggleGroupExpansion(currentPath)}
-							className="flex items-center gap-3 flex-1 min-w-0 h-full pl-1 pr-2"
+							className="flex items-center gap-2 flex-1 min-w-0 h-full"
 						>
-							<span className="text-gray-500 flex-shrink-0 hover:text-gray-700 transition-colors">
+							<span className="text-gray-400 flex-shrink-0 hover:text-gray-600 transition-colors">
 								{isExpanded ? (
-									<IoRemoveOutline size={22} aria-label="Свернуть" />
+									<IoRemoveOutline size={18} aria-label="Свернуть" />
 								) : (
-									<IoAddOutline size={22} aria-label="Развернуть" />
+									<IoAddOutline size={18} aria-label="Развернуть" />
 								)}
 							</span>
 							<span
-								className="font-medium text-base truncate flex-1 text-gray-800"
+								className="text-sm font-medium truncate flex-1 text-gray-900"
 								title={group.name}
 							>
-								{truncateName(group.name)}
+								{group.name}
 							</span>
 						</button>
 					</div>
@@ -301,8 +295,8 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 
 				{isExpanded && (
 					<div
-						className={`space-y-2 ${
-							level > 0 ? "ml-5 border-l-2 border-gray-200 pl-5" : ""
+						className={`space-y-0.5 ${
+							level > 0 ? "ml-6 border-l border-gray-200 pl-4 mb-2" : ""
 						}`}
 					>
 						{group.parts.map((part) => {
@@ -337,7 +331,7 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 							return (
 								<label
 									key={partDetail.originalName}
-									className="flex items-center px-4 py-2.5 hover:bg-gray-50 rounded-lg cursor-pointer group transition-colors"
+									className="flex items-center px-3 py-1.5 hover:bg-gray-50 rounded-lg cursor-pointer group transition-colors"
 								>
 									<input
 										type="checkbox"
@@ -348,10 +342,13 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 												e.target.checked,
 											);
 										}}
-										className="w-5 h-5 mr-4 rounded border-gray-300 text-red-600 focus:ring-red-500 transition-colors"
+										className="w-4 h-4 mr-3 rounded border-gray-300 text-red-700 focus:ring-red-500 transition-colors"
 									/>
-									<span className="text-base text-gray-700 group-hover:text-gray-900 transition-colors">
-										{truncateName(partDetail.displayName)}
+									<span 
+										className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors truncate max-w-full"
+										title={partDetail.displayName}
+									>
+										{partDetail.displayName.split("/").pop()}
 									</span>
 								</label>
 							);
@@ -364,62 +361,72 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 
 	return (
 		<div className="h-full flex flex-col">
-			{/* Search */}
-			<div className="px-5 py-4 sticky top-[0px] bg-white z-10 border-b border-gray-200">
-				<div className="relative">
+			{/* Search and Actions */}
+			<div className="sticky top-0 px-5 py-3 bg-white border-b border-gray-200">
+				<div className="relative mb-3">
 					<IoSearchOutline
-						size={22}
-						className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+						size={20}
+						className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
 					/>
 					<input
 						type="text"
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						placeholder="Поиск частей..."
-						className="w-full pl-12 pr-4 py-3 text-base bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all placeholder:text-gray-400"
+						className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all placeholder:text-gray-400"
 					/>
+				</div>
+				<div className="flex gap-2">
+					<button
+						type="button"
+						onClick={() => onPartsChange(availableParts)}
+						className="text-sm py-1.5 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+					>
+						Выбрать все
+					</button>
+					<button
+						type="button"
+						onClick={() => onPartsChange([])}
+						className="text-sm py-1.5 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+					>
+						Снять выбор
+					</button>
 				</div>
 			</div>
 
 			{/* Parts List */}
-			<div className="flex-1 overflow-y-auto px-5 py-3">
-				{/* Header */}
-				<div className="space-y-3">
+			<div className="flex-1 overflow-y-auto px-4 py-2 bg-white">
+				<div className="space-y-1">
 					<RenderPartGroup group={groupPartsByHierarchy(availableParts)} />
 				</div>
 			</div>
 
 			{/* Footer */}
-			<div className="sticky bottom-0 bg-white border-t border-gray-200 p-5 shadow-lg">
-				<div className="flex items-center justify-between">
-					<span className="text-base font-medium text-gray-700">
-						Выбрано: {localSelectedParts.length}{" "}
-					</span>
-					<button
-						type="button"
-						onClick={handleDone}
-						className="px-8 py-2.5 bg-red-600 text-white text-base rounded-lg hover:bg-red-700 transition-colors font-medium shadow-sm hover:shadow-md active:transform active:scale-95"
-					>
-						Готово
-					</button>
-				</div>
+			<div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex items-center justify-between">
+				<button
+					type="button"
+					onClick={onClose}
+					className="w-full px-8 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+				>
+					Закрыть
+				</button>
 			</div>
 		</div>
 	);
 };
 
-// Update the checkbox styling with larger size and better contrast
+// Update the checkbox and group item styling
 const style = document.createElement("style");
 style.textContent = `
   .custom-checkbox:indeterminate {
-    background-color: rgb(220 38 38);
-    border-color: rgb(220 38 38);
+    background-color: rgb(185 28 28);
+    border-color: rgb(185 28 28);
     background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M2 8h12a1 1 0 000-2H2a1 1 0 100 2z'/%3e%3c/svg%3e");
   }
   
   .custom-checkbox:checked {
-    background-color: rgb(220 38 38);
-    border-color: rgb(220 38 38);
+    background-color: rgb(185 28 28);
+    border-color: rgb(185 28 28);
   }
   
   .custom-checkbox:focus {

@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import {
 	IoLayersOutline,
-	IoSettingsOutline,
 	IoTrashOutline,
 	IoPencilOutline,
 	IoAddOutline,
+	IoList,
 } from "react-icons/io5";
-import InstructionSettings from "./InstructionSettings";
 import PartsSelector from "./PartsSelector";
 import { Widget } from "../../common/components";
 import {
@@ -48,6 +47,8 @@ interface InstructionBuilderProps {
 	onPartsSelectorOpen?: () => void;
 	selectedParts?: string[];
 	onSelectedPartsChange?: (parts: string[]) => void;
+	displayMode?: 'all' | 'selected';
+	onDisplayModeChange?: (mode: 'all' | 'selected') => void;
 }
 
 const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
@@ -74,10 +75,11 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 	onPartsSelectorOpen,
 	selectedParts = [],
 	onSelectedPartsChange,
+	displayMode = 'all',
+	onDisplayModeChange,
 }) => {
 	const [currentStep, setCurrentStep] = useState<number>(0);
 	const [editingStep, setEditingStep] = useState<InstructionStep | null>(null);
-	const [showSettings, setShowSettings] = useState(false);
 	const [visibleParts, setVisibleParts] = useState<Record<string, boolean>>({});
 	const [showPartsSelector, setShowPartsSelector] = useState(false);
 	const [newStepForm, setNewStepForm] = useState<{
@@ -92,11 +94,11 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 
 	// Update newStepForm.selectedParts when selectedParts prop changes
 	useEffect(() => {
-		setNewStepForm(prev => ({
+		setNewStepForm((prev) => ({
 			...prev,
-			selectedParts: selectedParts
+			selectedParts: selectedParts,
 		}));
-		
+
 		// Also notify parent about changes
 		onSelectedPartsChange?.(selectedParts);
 	}, [selectedParts, onSelectedPartsChange]);
@@ -111,7 +113,10 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 	// Function to add a new step
 	const handleAddStep = () => {
 		if (!newStepForm.name || newStepForm.selectedParts.length === 0) {
-			showToast?.("Please fill in step name and select parts", "error");
+			showToast?.(
+				"Пожалуйста, заполните название шага и выберите детали",
+				"error",
+			);
 			return;
 		}
 
@@ -124,19 +129,21 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 
 		onInstructionsChange([...instructions, newStep]);
 		setNewStepForm({ name: "", description: "", selectedParts: [] });
-		showToast?.("Step added successfully", "success");
+		showToast?.("Шаг успешно добавлен", "success");
 	};
 
 	// Function to delete a step
 	const handleDeleteStep = (stepId: number) => {
-		const updatedInstructions = instructions.filter((step) => step.id !== stepId);
+		const updatedInstructions = instructions.filter(
+			(step) => step.id !== stepId,
+		);
 		// Reindex remaining steps
 		const reindexedInstructions = updatedInstructions.map((step, index) => ({
 			...step,
 			id: index + 1,
 		}));
 		onInstructionsChange(reindexedInstructions);
-		showToast?.("Step deleted successfully", "success");
+		showToast?.("Шаг успешно удален", "success");
 	};
 
 	// Function to start editing a step
@@ -151,8 +158,12 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 
 	// Function to save edited step
 	const handleSaveEdit = () => {
-		if (!editingStep || !newStepForm.name || newStepForm.selectedParts.length === 0) {
-			showToast?.("Please fill in all required fields", "error");
+		if (
+			!editingStep ||
+			!newStepForm.name ||
+			newStepForm.selectedParts.length === 0
+		) {
+			showToast?.("Пожалуйста, заполните все обязательные поля", "error");
 			return;
 		}
 
@@ -163,30 +174,125 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 						name: newStepForm.name,
 						description: newStepForm.description,
 						parts: newStepForm.selectedParts,
-				  }
+					}
 				: step,
 		);
 
 		onInstructionsChange(updatedInstructions);
 		setEditingStep(null);
 		setNewStepForm({ name: "", description: "", selectedParts: [] });
-		showToast?.("Step updated successfully", "success");
+		showToast?.("Шаг успешно обновлен", "success");
 	};
 
-	// Function to handle parts change from PartsSelector
+	// Function to handle parts change
 	const handlePartsChange = (parts: string[]) => {
-		setNewStepForm(prev => ({ ...prev, selectedParts: parts }));
+		setNewStepForm((prev) => ({ ...prev, selectedParts: parts }));
 		onSelectedPartsChange?.(parts);
+	};
+
+	// Function to handle part focus
+	const handlePartFocus = (partName: string) => {
+		onPartFocus?.(partName);
+	};
+
+	// Function to handle step parts focus
+	const handleStepPartsFocus = (parts: string[]) => {
+		onStepPartsFocus?.(parts);
+	};
+
+	// Function to handle visibility change
+	const handleVisibilityChange = (parts: Record<string, boolean>) => {
+		setVisibleParts(parts);
+		onVisibilityChange(parts);
+	};
+
+	// Function to handle highlight enabled change
+	const handleHighlightEnabledChange = (enabled: boolean) => {
+		onHighlightEnabledChange?.(enabled);
+		showToast?.(
+			`Подсветка деталей ${enabled ? "включена" : "выключена"}`,
+			enabled ? "success" : "info",
+		);
+	};
+
+	// Function to handle highlight color change
+	const handleHighlightColorChange = (color: string) => {
+		onHighlightColorChange?.(color);
+	};
+
+	// Function to handle previous steps transparency change
+	const handlePreviousStepsTransparencyChange = (enabled: boolean) => {
+		onPreviousStepsTransparencyChange?.(enabled);
+		showToast?.(
+			`Прозрачность предыдущих шагов ${enabled ? "включена" : "выключена"}`,
+			"info",
+		);
+	};
+
+	// Function to handle previous steps opacity change
+	const handlePreviousStepsOpacityChange = (opacity: number) => {
+		onPreviousStepsOpacityChange?.(opacity);
+	};
+
+	// Function to handle auto rotation change
+	const handleAutoRotationChange = (enabled: boolean) => {
+		onAutoRotationChange?.(enabled);
+		showToast?.(
+			`Автовращение модели ${enabled ? "включено" : "выключено"}`,
+			"info",
+		);
+	};
+
+	// Function to handle background color change
+	const handleBackgroundColorChange = (color: string) => {
+		onBackgroundColorChange?.(color);
+	};
+
+	// Function to handle display mode change
+	const handleDisplayModeChange = (mode: 'all' | 'selected') => {
+		onDisplayModeChange?.(mode);
+		showToast?.(
+			`Режим отображения: ${mode === 'all' ? 'все детали' : 'только выбранные'}`,
+			"info"
+		);
 	};
 
 	return (
 		<>
 			<div className="h-full flex flex-col p-2">
+				{/* Display Mode Toggle */}
+				<div className="flex items-center gap-2 mb-4">
+					<button
+						type="button"
+						onClick={() => handleDisplayModeChange('all')}
+						className={`px-3 py-1.5 text-sm rounded-md flex items-center justify-center gap-1 ${
+							displayMode === 'all'
+								? 'bg-red-700 text-white'
+								: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+						}`}
+					>
+						<IoLayersOutline size={14} />
+						Все детали
+					</button>
+					<button
+						type="button"
+						onClick={() => handleDisplayModeChange('selected')}
+						className={`px-3 py-1.5 text-sm rounded-md flex items-center justify-center gap-1 ${
+							displayMode === 'selected'
+								? 'bg-red-700 text-white'
+								: 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+						}`}
+					>
+						<IoList size={14} />
+						Только выбранные
+					</button>
+				</div>
+
 				{/* Step Form */}
 				<div className="bg-gray-50 rounded-lg p-3 mb-4">
 					<div className="flex items-center justify-between mb-3">
 						<h3 className="text-sm font-medium text-gray-700">
-							{editingStep ? "Edit Step" : "Add New Step"}
+							{editingStep ? "Редактировать шаг" : "Добавить новый шаг"}
 						</h3>
 						<button
 							type="button"
@@ -200,13 +306,16 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 							}}
 							className="text-xs text-gray-500 hover:text-gray-700"
 						>
-							Reset
+							Сбросить
 						</button>
 					</div>
 					<div className="space-y-3">
 						<div>
-							<label htmlFor="step-name" className="block text-xs font-medium text-gray-700 mb-1">
-								Step Name *
+							<label
+								htmlFor="step-name"
+								className="block text-xs font-medium text-gray-700 mb-1"
+							>
+								Название шага *
 							</label>
 							<input
 								id="step-name"
@@ -216,12 +325,15 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 									setNewStepForm((prev) => ({ ...prev, name: e.target.value }))
 								}
 								className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
-								placeholder="Enter step name"
+								placeholder="Введите название шага"
 							/>
 						</div>
 						<div>
-							<label htmlFor="step-description" className="block text-xs font-medium text-gray-700 mb-1">
-								Description
+							<label
+								htmlFor="step-description"
+								className="block text-xs font-medium text-gray-700 mb-1"
+							>
+								Описание
 							</label>
 							<textarea
 								id="step-description"
@@ -233,39 +345,12 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 									}))
 								}
 								className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
-								placeholder="Enter step description"
+								placeholder="Введите описание шага"
 								rows={2}
 							/>
 						</div>
 						<div>
-							<label htmlFor="step-parts" className="block text-xs font-medium text-gray-700 mb-1">
-								Select Parts *
-							</label>
 							<div className="flex flex-col gap-2">
-								<div className="flex flex-wrap gap-1">
-									{newStepForm.selectedParts.map((part) => (
-										<span
-											key={part}
-											className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs flex items-center gap-1"
-										>
-											{truncateName(part)}
-											<button
-												type="button"
-												onClick={() =>
-													setNewStepForm((prev) => ({
-														...prev,
-														selectedParts: prev.selectedParts.filter(
-															(p) => p !== part,
-														),
-													}))
-												}
-												className="hover:text-red-900"
-											>
-												×
-											</button>
-										</span>
-									))}
-								</div>
 								<button
 									type="button"
 									onClick={() => {
@@ -274,10 +359,8 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 									}}
 									className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center gap-1"
 								>
-									<IoLayersOutline size={14} />
-									{newStepForm.selectedParts.length > 0
-										? "Change Parts"
-										: "Select Parts"}
+									<IoList size={14} />
+									Список деталей
 								</button>
 							</div>
 						</div>
@@ -287,7 +370,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 							className="w-full px-3 py-1.5 text-sm bg-red-700 text-white rounded-md hover:bg-red-800 flex items-center justify-center gap-1"
 						>
 							<IoAddOutline size={14} />
-							{editingStep ? "Save Changes" : "Add Step"}
+							{editingStep ? "Сохранить изменения" : "Добавить шаг"}
 						</button>
 					</div>
 				</div>
@@ -295,14 +378,21 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 				{/* Steps List */}
 				<div className="flex-1 overflow-y-auto">
 					<div className="flex items-center justify-between mb-2">
-						<h3 className="text-sm font-medium text-gray-700">Instructions Steps</h3>
+						<h3 className="text-sm font-medium text-gray-700">
+							Шаги инструкции
+						</h3>
 						<span className="text-xs text-gray-500">
-							{instructions.length} {instructions.length === 1 ? "step" : "steps"}
+							{instructions.length}{" "}
+							{instructions.length === 1
+								? "шаг"
+								: instructions.length < 5
+									? "шага"
+									: "шагов"}
 						</span>
 					</div>
 					{instructions.length === 0 ? (
 						<div className="text-center py-4 text-sm text-gray-500">
-							No steps added yet
+							Шаги еще не добавлены
 						</div>
 					) : (
 						<div className="space-y-2">
@@ -315,7 +405,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center gap-2">
 												<span className="text-xs font-medium text-gray-500">
-													Step {step.id}
+													Шаг {step.id}
 												</span>
 												<h4 className="text-sm font-medium truncate">
 													{step.name}
@@ -328,7 +418,14 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 											)}
 											<div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
 												<IoLayersOutline size={12} />
-												<span>{step.parts.length} parts</span>
+												<span>
+													{step.parts.length}{" "}
+													{step.parts.length === 1
+														? "деталь"
+														: step.parts.length < 5
+															? "детали"
+															: "деталей"}
+												</span>
 											</div>
 										</div>
 										<div className="flex gap-1 ml-2">
@@ -336,7 +433,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 												type="button"
 												onClick={() => handleEditStep(step)}
 												className="p-1 text-blue-600 hover:bg-blue-50 rounded-full"
-												title="Edit step"
+												title="Редактировать шаг"
 											>
 												<IoPencilOutline size={14} />
 											</button>
@@ -344,22 +441,41 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 												type="button"
 												onClick={() => handleDeleteStep(step.id)}
 												className="p-1 text-red-600 hover:bg-red-50 rounded-full"
-												title="Delete step"
+												title="Удалить шаг"
 											>
 												<IoTrashOutline size={14} />
 											</button>
 										</div>
 									</div>
 									<div className="mt-2">
-										<div className="flex flex-wrap gap-1">
-											{step.parts.map((part) => (
-												<span
-													key={part}
-													className="px-1.5 py-0.5 bg-gray-100 rounded text-xs"
-												>
-													{truncateName(part)}
-												</span>
-											))}
+										<div className="flex flex-col gap-1">
+											{step.parts.map((part) => {
+												const segments = part.split("/");
+												const isGroup = segments.length > 1;
+												const displayName = isGroup
+													? segments.slice(0, -1).join("/")
+													: part;
+												const partName = isGroup
+													? segments[segments.length - 1]
+													: part;
+
+												return (
+													<div key={part} className="flex flex-col gap-0.5">
+														{isGroup && (
+															<div className="text-xs text-gray-500 px-1.5">
+																{displayName}
+															</div>
+														)}
+														<button
+															className="px-1.5 py-0.5 bg-gray-100 rounded text-xs cursor-pointer hover:bg-gray-200 border-0 self-start"
+															onClick={() => handlePartFocus(part)}
+															type="button"
+														>
+															{partName}
+														</button>
+													</div>
+												);
+											})}
 										</div>
 									</div>
 								</div>
@@ -372,7 +488,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 			{/* Parts Selector Widget */}
 			{showPartsSelector && (
 				<Widget
-					title="Select Parts"
+					title="Выберите детали"
 					initialPosition={{ x: 520, y: 70 }}
 					minWidth={300}
 				>
@@ -381,7 +497,6 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 						selectedParts={newStepForm.selectedParts}
 						onPartsChange={handlePartsChange}
 						onClose={() => setShowPartsSelector(false)}
-						truncateName={truncateName}
 					/>
 				</Widget>
 			)}
