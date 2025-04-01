@@ -10,6 +10,7 @@ import {
 	createModelUrl,
 } from "./utils/fileUtils";
 import { ApplicationMode } from "./components/types";
+import ModelConstructor from "./components/ModelConstructor";
 
 function App() {
 	const [modelUrl, setModelUrl] = useState<string | null>(null);
@@ -183,6 +184,14 @@ function App() {
 					error={error}
 					onContinue={handleContinue}
 					userConfirmed={userConfirmed}
+				/>
+			) : mode === ApplicationMode.CONSTRUCTOR ? (
+				<ModelConstructor
+					modelUrl={modelUrl}
+					instructions={instructions}
+					isLoading={isLoading}
+					setIsLoading={setIsLoading}
+					onReset={resetState}
 				/>
 			) : (
 				<ModelViewer
