@@ -7,6 +7,11 @@ export const DEFAULT_CAMERA_TARGET: [number, number, number] = [0, 0, 0];
 // THREE.js specific settings
 export const ENABLE_THREE_CACHE = true;
 
+// Settings defaults
+export const DEFAULT_HIGHLIGHT_COLOR = "#f87171";
+export const DEFAULT_PREVIOUS_STEPS_OPACITY = 0.4;
+export const DEFAULT_BACKGROUND_COLOR = "#E2E8F0";
+
 // Apply global THREE.js settings
 if (ENABLE_THREE_CACHE) {
 	THREE.Cache.enabled = true;

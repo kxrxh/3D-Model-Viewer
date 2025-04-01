@@ -34,7 +34,7 @@ import usePerformanceProfiles from "./hooks/usePerformanceProfiles";
 import { useToast } from "./hooks";
 
 import { Widget, type WidgetPosition } from "./components";
-import { ControlPanel, PerformanceProfileSelector } from "./ui";
+import { ControlPanel, PerformanceProfileSelector, InstructionSettings } from "./ui";
 import { DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET } from "./utils";
 import StepsList from "./ui/StepsList";
 import type { InstructionStep } from "./ui/StepsList";
@@ -72,6 +72,7 @@ export default function ModelViewer() {
 		useState<boolean>(true); // Enable by default
 	const [previousStepsOpacity, setPreviousStepsOpacity] = useState<number>(0.4); // 40% opacity by default
 	const [autoRotationEnabled, setAutoRotationEnabled] = useState<boolean>(true); // Enable by default
+	const [backgroundColor, setBackgroundColor] = useState<string>("#E2E8F0"); // Default background color
 
 	// Widget positions
 	const [currentEditingStep, setCurrentEditingStep] = useState<
@@ -395,6 +396,10 @@ export default function ModelViewer() {
 		[showToast],
 	);
 
+	const handleBackgroundColorChange = useCallback((color: string) => {
+		setBackgroundColor(color);
+	}, []);
+
 	const resetView = useCallback(() => {
 		setSelectedParts([]);
 		if (controlsRef.current) {
@@ -623,7 +628,7 @@ export default function ModelViewer() {
 				}}
 				performance={{ min: 0.5 }}
 			>
-				<color attach="background" args={["#E2E8F0"]} />
+				<color attach="background" args={[backgroundColor]} />
 
 				{adaptiveDprEnabled && (
 					<PerformanceMonitor
@@ -710,6 +715,7 @@ export default function ModelViewer() {
 			previousStepsTransparency,
 			previousStepsOpacity,
 			autoRotationEnabled,
+			backgroundColor,
 			profiles,
 			handleModelLoad,
 			handlePartFound,
@@ -755,9 +761,9 @@ export default function ModelViewer() {
 							{/* Assembly Step Builder Widget */}
 							<Widget
 								id="builder"
-								title="Создание шага"
+								title="Детали"
 								initialPosition={{ x: 10, y: 70 }}
-								minWidth={500}
+								minWidth={400}
 								color="bg-red-700"
 							>
 								<AssemblyStepBuilder
@@ -776,12 +782,36 @@ export default function ModelViewer() {
 								/>
 							</Widget>
 
+							{/* Settings Widget */}
+							<Widget
+								id="settings"
+								title="Настройки"
+								initialPosition={{ x: 10, y: window.innerHeight - 380 }}
+								minWidth={350}
+								color="bg-red-700"
+							>
+								<InstructionSettings
+									highlightEnabled={highlightEnabled}
+									onHighlightEnabledChange={handleHighlightEnabledChange}
+									highlightColor={highlightColor}
+									onHighlightColorChange={handleHighlightColorChange}
+									previousStepsTransparency={previousStepsTransparency}
+									onPreviousStepsTransparencyChange={handlePreviousStepsTransparencyChange}
+									previousStepsOpacity={previousStepsOpacity}
+									onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
+									autoRotationEnabled={autoRotationEnabled}
+									onAutoRotationChange={handleAutoRotationChange}
+									backgroundColor={backgroundColor}
+									onBackgroundColorChange={handleBackgroundColorChange}
+								/>
+							</Widget>
+
 							{/* Steps List Widget */}
 							<Widget
 								id="steps"
 								title="Список шагов"
-								initialPosition={{ x: window.innerWidth - 410, y: 70 }}
-								minWidth={400}
+								initialPosition={{ x: window.innerWidth - 380, y: 70 }}
+								minWidth={370}
 								color="bg-red-700"
 							>
 								<StepsList
