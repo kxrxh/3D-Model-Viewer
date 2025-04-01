@@ -31,6 +31,8 @@ services:
     restart: always
     networks:
       - web
+    volumes:
+      - /usr/src/app/node_modules
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.app.rule=Host(`www.assembly3d.ru`)"
