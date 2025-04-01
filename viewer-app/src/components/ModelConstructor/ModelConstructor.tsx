@@ -544,7 +544,7 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 			{/* Instruction Steps Widget */}
 			<Widget
 				title="Шаги инструкции"
-				initialPosition={{ x: 420, y: 70 }}
+				initialPosition={{ x: window.innerWidth - 410, y: 70 }}
 				minWidth={400}
 			>
 				<InstructionSteps
