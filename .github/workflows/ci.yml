@@ -19,9 +19,11 @@ jobs:
         bun-version: latest
 
     - name: Install dependencies
+      working-directory: viewer-app
       run: bun install
 
     - name: Format code with Biome
+      working-directory: viewer-app
       run: bun run format
 
     - name: Commit formatting changes
@@ -32,10 +34,13 @@ jobs:
         git diff --quiet && git diff --staged --quiet || (git commit -m "style: format code with Biome" && git push)
 
     - name: Lint with Biome
+      working-directory: viewer-app
       run: bun run lint
 
     - name: Type check
+      working-directory: viewer-app
       run: bun run tsc --noEmit
 
     - name: Build
+      working-directory: viewer-app
       run: bun run build
