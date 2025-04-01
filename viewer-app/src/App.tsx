@@ -8,7 +8,7 @@ import {
 	processInstructionFile,
 	processFiles,
 	createModelUrl,
-} from './utils/fileUtils';
+} from "./utils/fileUtils";
 import { ApplicationMode } from "./components/types";
 import ModelConstructor from "./components/ModelConstructor";
 import { ModelConstructorProvider } from "./components/ModelConstructor/context/ModelConstructorContext";
