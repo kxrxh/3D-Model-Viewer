@@ -1,10 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import {
 	IoSearchOutline,
-	IoCloseOutline,
 	IoRemoveOutline,
 	IoAddOutline,
-	IoCheckmarkOutline,
 } from "react-icons/io5";
 
 interface PartGroup {
@@ -25,6 +23,8 @@ interface PartsSelectorProps {
 	selectedParts: string[];
 	onPartsChange: (parts: string[]) => void;
 	onClose: () => void;
+	isEditing?: boolean;
+	partsUsedInSteps?: string[];
 }
 
 const PartsSelector: React.FC<PartsSelectorProps> = ({
@@ -32,6 +32,8 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 	selectedParts,
 	onPartsChange,
 	onClose,
+	isEditing = false,
+	partsUsedInSteps = [],
 }) => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [groupsExpanded, setGroupsExpanded] = useState<Record<string, boolean>>(
@@ -165,6 +167,10 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 
 	// Handle part selection
 	const handlePartSelection = (partName: string, isSelected: boolean) => {
+		if (!isEditing && selectedParts.includes(partName)) {
+			return;
+		}
+
 		const newSelectedParts = isSelected
 			? [...localSelectedParts, partName]
 			: localSelectedParts.filter((p) => p !== partName);
@@ -177,6 +183,10 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		(group: PartGroup) => {
 			const allPartIds = collectPartIdsInGroup(group);
 			const groupState = getGroupSelectionState(group);
+
+			if (!isEditing && groupState === "all") {
+				return;
+			}
 
 			let newSelectedParts: string[];
 
@@ -201,6 +211,7 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 			onPartsChange,
 			collectPartIdsInGroup,
 			getGroupSelectionState,
+			isEditing,
 		],
 	);
 
@@ -217,6 +228,14 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		const currentPath = path ? `${path}/${group.name}` : group.name;
 		const isExpanded = group.name === "root" ? true : (groupsExpanded[currentPath] ?? false);
 		const groupSelectionState = getGroupSelectionState(group);
+
+		// Check if group has any parts used in other steps
+		const hasUsedParts = group.parts.some(part => {
+			if ("isGroup" in part && part.isGroup) {
+				return collectPartIdsInGroup(part).some(id => partsUsedInSteps.includes(id));
+			}
+			return partsUsedInSteps.includes(part.originalName);
+		});
 
 		// Filter logic (keep the same)
 		// Filter parts in this group based on search query
@@ -257,26 +276,42 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		return (
 			<div>
 				{group.name !== "root" && (
-					<div className="flex items-center gap-2 w-full text-left px-3 py-1.5 h-10 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 mb-2 transition-colors shadow-sm">
+					<div className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg border ${
+						hasUsedParts
+							? 'border-blue-200 bg-blue-50 hover:bg-blue-100'
+							: groupSelectionState === "all"
+								? 'border-red-200 bg-red-50 hover:bg-red-100'
+								: 'border-gray-200 bg-white hover:bg-gray-50'
+					} mb-1.5 transition-colors shadow-sm`}>
 						<input
 							type="checkbox"
-							className="ml-1 flex-shrink-0 custom-checkbox w-4 h-4 rounded border-gray-300 text-red-700 focus:ring-red-500 transition-colors"
-							checked={groupSelectionState === "all"}
+							className={`w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 transition-colors ${
+								hasUsedParts ? 'opacity-50 cursor-not-allowed' : ''
+							}`}
+							checked={hasUsedParts || groupSelectionState === "all"}
+							disabled={hasUsedParts}
 							ref={(input) => {
 								if (input) {
-									input.indeterminate = groupSelectionState === "partial";
+									input.indeterminate = !hasUsedParts && groupSelectionState === "partial";
 								}
 							}}
 							onClick={(e) => e.stopPropagation()}
-							onChange={() => handleGroupSelectionToggle(group)}
+							onChange={() => !hasUsedParts && handleGroupSelectionToggle(group)}
 							title={group.name}
 						/>
 						<button
 							type="button"
 							onClick={() => toggleGroupExpansion(currentPath)}
 							className="flex items-center gap-2 flex-1 min-w-0 h-full"
+							aria-expanded={isExpanded}
 						>
-							<span className="text-gray-400 flex-shrink-0 hover:text-gray-600 transition-colors">
+							<span className={`flex-shrink-0 transition-transform duration-200 ease-in-out ${isExpanded ? 'rotate-0' : '-rotate-90'} ${
+								hasUsedParts
+									? 'text-blue-400 hover:text-blue-600'
+									: groupSelectionState === "all"
+										? 'text-red-400 hover:text-red-600'
+										: 'text-gray-400 hover:text-gray-600'
+							}`}>
 								{isExpanded ? (
 									<IoRemoveOutline size={18} aria-label="Свернуть" />
 								) : (
@@ -284,7 +319,13 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 								)}
 							</span>
 							<span
-								className="text-sm font-medium truncate flex-1 text-gray-900"
+								className={`text-sm font-medium truncate flex-1 ${
+									hasUsedParts
+										? 'text-blue-700'
+										: groupSelectionState === "all"
+											? 'text-red-700'
+											: 'text-gray-900'
+								}`}
 								title={group.name}
 							>
 								{group.name}
@@ -295,8 +336,8 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 
 				{isExpanded && (
 					<div
-						className={`space-y-0.5 ${
-							level > 0 ? "ml-6 border-l border-gray-200 pl-4 mb-2" : ""
+						className={`space-y-1.5 ${
+							level > 0 ? "ml-5 pl-5 border-l border-gray-200 py-1" : "pt-1"
 						}`}
 					>
 						{group.parts.map((part) => {
@@ -314,42 +355,64 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 							}
 
 							const partDetail = part as PartDetail;
-
-							if (
-								searchQuery &&
-								!partDetail.originalName
-									.toLowerCase()
-									.includes(searchQuery.toLowerCase())
-							) {
+							const matchesSearch = !searchQuery || partDetail.originalName.toLowerCase().includes(searchQuery.toLowerCase());
+							if (!matchesSearch) {
 								return null;
 							}
 
 							const isSelected = localSelectedParts.includes(
 								partDetail.originalName,
 							);
+							const isUsedInOtherSteps = partsUsedInSteps.includes(partDetail.originalName);
 
 							return (
 								<label
 									key={partDetail.originalName}
-									className="flex items-center px-3 py-1.5 hover:bg-gray-50 rounded-lg cursor-pointer group transition-colors"
+									className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer group transition-colors ${
+										isUsedInOtherSteps
+											? 'bg-blue-50/90 hover:bg-blue-100/90 border border-blue-100'
+											: isSelected
+												? 'bg-red-50/90 hover:bg-red-100/90 border border-red-100'
+												: 'hover:bg-gray-100 border border-transparent'
+									}`}
 								>
 									<input
 										type="checkbox"
-										checked={isSelected}
+										checked={isUsedInOtherSteps || isSelected}
+										disabled={isUsedInOtherSteps}
 										onChange={(e) => {
-											handlePartSelection(
-												partDetail.originalName,
-												e.target.checked,
-											);
+											if (!isUsedInOtherSteps) {
+												handlePartSelection(
+													partDetail.originalName,
+													e.target.checked,
+												);
+											}
 										}}
-										className="w-4 h-4 mr-3 rounded border-gray-300 text-red-700 focus:ring-red-500 transition-colors"
+										className={`w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 transition-colors ${
+											isUsedInOtherSteps ? 'opacity-50 cursor-not-allowed' : ''
+										}`}
 									/>
-									<span 
-										className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors truncate max-w-full"
-										title={partDetail.displayName}
-									>
-										{partDetail.displayName.split("/").pop()}
-									</span>
+									<div className="flex-1 min-w-0 w-full">
+										<div className="flex flex-col min-w-0">
+											<span 
+												className={`text-sm transition-colors truncate ${
+													isUsedInOtherSteps
+														? 'text-blue-700 group-hover:text-blue-800'
+														: isSelected
+															? 'text-red-700 group-hover:text-red-800'
+															: 'text-gray-700 group-hover:text-gray-900'
+												}`}
+												title={partDetail.displayName}
+											>
+												{partDetail.displayName}
+											</span>
+											{isUsedInOtherSteps && (
+												<span className="text-xs text-blue-500/90 block mt-0.5">
+													Используется в других шагах
+												</span>
+											)}
+										</div>
+									</div>
 								</label>
 							);
 						})}
@@ -360,9 +423,9 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 	};
 
 	return (
-		<div className="h-full flex flex-col">
+		<div className="h-full flex flex-col bg-gray-50">
 			{/* Search and Actions */}
-			<div className="sticky top-0 px-5 py-3 bg-white border-b border-gray-200">
+			<div className="sticky top-0 px-4 py-3 bg-white border-b border-gray-200 shadow-sm z-10">
 				<div className="relative mb-3">
 					<IoSearchOutline
 						size={20}
@@ -373,21 +436,23 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						placeholder="Поиск частей..."
-						className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all placeholder:text-gray-400"
+						className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500 transition-all placeholder:text-gray-400"
 					/>
 				</div>
 				<div className="flex gap-2">
 					<button
 						type="button"
 						onClick={() => onPartsChange(availableParts)}
-						className="text-sm py-1.5 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+						className="text-sm py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+						disabled={!isEditing}
 					>
 						Выбрать все
 					</button>
 					<button
 						type="button"
 						onClick={() => onPartsChange([])}
-						className="text-sm py-1.5 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+						className="text-sm py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+						disabled={!isEditing}
 					>
 						Снять выбор
 					</button>
@@ -395,18 +460,18 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 			</div>
 
 			{/* Parts List */}
-			<div className="flex-1 overflow-y-auto px-4 py-2 bg-white">
-				<div className="space-y-1">
+			<div className="flex-1 overflow-y-auto px-4 py-3">
+				<div className="space-y-2">
 					<RenderPartGroup group={groupPartsByHierarchy(availableParts)} />
 				</div>
 			</div>
 
 			{/* Footer */}
-			<div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex items-center justify-between">
+			<div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 z-10">
 				<button
 					type="button"
 					onClick={onClose}
-					className="w-full px-8 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+					className="w-full px-8 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
 				>
 					Закрыть
 				</button>
@@ -414,29 +479,5 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		</div>
 	);
 };
-
-// Update the checkbox and group item styling
-const style = document.createElement("style");
-style.textContent = `
-  .custom-checkbox:indeterminate {
-    background-color: rgb(185 28 28);
-    border-color: rgb(185 28 28);
-    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M2 8h12a1 1 0 000-2H2a1 1 0 100 2z'/%3e%3c/svg%3e");
-  }
-  
-  .custom-checkbox:checked {
-    background-color: rgb(185 28 28);
-    border-color: rgb(185 28 28);
-  }
-  
-  .custom-checkbox:focus {
-    box-shadow: 0 0 0 2px rgb(254 202 202);
-  }
-  
-  .custom-checkbox {
-    cursor: pointer;
-  }
-`;
-document.head.append(style);
 
 export default PartsSelector;

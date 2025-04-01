@@ -115,6 +115,17 @@ export default function ModelConstructor({
 	const [showPartsSelector, setShowPartsSelector] = useState(false);
 	const [selectedPartIds, setSelectedPartIds] = useState<string[]>([]);
 
+	// Add function to collect all parts used in steps
+	const getPartsUsedInSteps = useCallback(() => {
+		const usedParts = new Set<string>();
+		for (const step of instructions) {
+			for (const part of step.parts) {
+				usedParts.add(part);
+			}
+		}
+		return Array.from(usedParts);
+	}, [instructions]);
+
 	const handleVisibilityChange = useCallback(
 		(newVisibleParts: Record<string, boolean>) => {
 			setVisibleParts(newVisibleParts);
@@ -192,8 +203,11 @@ export default function ModelConstructor({
 	const handleInstructionsChange = useCallback(
 		(newInstructions: InstructionStep[]) => {
 			setInstructions(newInstructions);
+			// Clear highlighting when instructions are updated (step created/edited)
+			setSelectedPartIds([]);
+			setCurrentStepParts([]);
 		},
-		[],
+		[setCurrentStepParts],
 	);
 
 	// Handle focusing on a specific part
@@ -231,6 +245,8 @@ export default function ModelConstructor({
 			if (meshes.length > 0) {
 				// Set all part meshes for this step to focus on
 				setSelectedParts(meshes);
+				// Update current step parts for highlighting
+				setCurrentStepParts(stepParts);
 				showToast(`Фокус на все детали шага (${meshes.length} шт.)`, "info");
 
 				// Disable auto-rotation
@@ -243,6 +259,7 @@ export default function ModelConstructor({
 			modelParts,
 			modelState.meshes,
 			setSelectedParts,
+			setCurrentStepParts,
 			showToast,
 			autoRotationEnabled,
 		],
@@ -280,14 +297,14 @@ export default function ModelConstructor({
 				newVisibleParts[partId] = true;
 			}
 		} else {
-			// Show only selected parts
+			// Show only selected parts and current step parts
 			for (const partId of Object.keys(modelParts)) {
-				newVisibleParts[partId] = selectedPartIds.includes(partId);
+				newVisibleParts[partId] = selectedPartIds.includes(partId) || currentStepParts.includes(partId);
 			}
 		}
 		
 		setVisibleParts(newVisibleParts);
-	}, [displayMode, modelParts, selectedPartIds, setVisibleParts]);
+	}, [displayMode, modelParts, selectedPartIds, currentStepParts, setVisibleParts]);
 
 	// Handle display mode change
 	const handleDisplayModeChange = useCallback((mode: 'all' | 'selected') => {
@@ -470,7 +487,7 @@ export default function ModelConstructor({
 			<Widget
 				title="Инструкция по сборке"
 				initialPosition={{ x: 10, y: 70 }}
-				minWidth={400}
+				minWidth={680}
 			>
 				<InstructionBuilder
 					instructions={instructions}
@@ -557,6 +574,8 @@ export default function ModelConstructor({
 						selectedParts={selectedPartIds}
 						onPartsChange={handlePartsChange}
 						onClose={handlePartsSelectorClose}
+						partsUsedInSteps={getPartsUsedInSteps()}
+						isEditing={true}
 					/>
 				</Widget>
 			)}

@@ -184,7 +184,6 @@ const Widget = ({
 						padding: isCollapsed ? "0" : "0",
 						opacity: isCollapsed ? 0 : 1,
 						pointerEvents: isCollapsed ? "none" : "auto",
-						paddingRight: "16px",
 					}}
 				>
 					{children}
