@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  constructor-app:
+    build:
+      context: ./constructor-app-new
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./constructor-app-new:/usr/src/app
+      # Add node_modules exclusion to prevent host node_modules from overwriting container's
+      - /usr/src/app/node_modules
+    # Environment variables can be added here if needed
+    # environment:
+    #   - NODE_ENV=development
+
+  viewer-app:
+    build:
+      context: ./viewer-app
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./viewer-app:/usr/src/app
+      # Add node_modules exclusion
+      - /usr/src/app/node_modules
+    # environment:
+    #   - NODE_ENV=development

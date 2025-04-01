@@ -34,7 +34,11 @@ import usePerformanceProfiles from "./hooks/usePerformanceProfiles";
 import { useToast } from "./hooks";
 
 import { Widget, type WidgetPosition } from "./components";
-import { ControlPanel, PerformanceProfileSelector, InstructionSettings } from "./ui";
+import {
+	ControlPanel,
+	PerformanceProfileSelector,
+	InstructionSettings,
+} from "./ui";
 import { DEFAULT_CAMERA_POSITION, DEFAULT_CAMERA_TARGET } from "./utils";
 import StepsList from "./ui/StepsList";
 import type { InstructionStep } from "./ui/StepsList";
@@ -796,9 +800,13 @@ export default function ModelViewer() {
 									highlightColor={highlightColor}
 									onHighlightColorChange={handleHighlightColorChange}
 									previousStepsTransparency={previousStepsTransparency}
-									onPreviousStepsTransparencyChange={handlePreviousStepsTransparencyChange}
+									onPreviousStepsTransparencyChange={
+										handlePreviousStepsTransparencyChange
+									}
 									previousStepsOpacity={previousStepsOpacity}
-									onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
+									onPreviousStepsOpacityChange={
+										handlePreviousStepsOpacityChange
+									}
 									autoRotationEnabled={autoRotationEnabled}
 									onAutoRotationChange={handleAutoRotationChange}
 									backgroundColor={backgroundColor}

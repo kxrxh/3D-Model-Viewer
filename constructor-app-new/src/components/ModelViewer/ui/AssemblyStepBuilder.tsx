@@ -486,12 +486,17 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 		for (const part of group.parts) {
 			if ("isGroup" in part && part.isGroup) {
 				const filteredSubgroup = filterParts(part, query);
-				if (filteredSubgroup.parts.length > 0 || part.name.toLowerCase().includes(query.toLowerCase())) {
+				if (
+					filteredSubgroup.parts.length > 0 ||
+					part.name.toLowerCase().includes(query.toLowerCase())
+				) {
 					filteredGroup.parts.push(filteredSubgroup);
 				}
 			} else if ("originalName" in part) {
-				if (part.originalName.toLowerCase().includes(query.toLowerCase()) ||
-					part.displayName.toLowerCase().includes(query.toLowerCase())) {
+				if (
+					part.originalName.toLowerCase().includes(query.toLowerCase()) ||
+					part.displayName.toLowerCase().includes(query.toLowerCase())
+				) {
 					filteredGroup.parts.push(part);
 				}
 			}
@@ -678,7 +683,7 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 												<IoEyeOffOutline size={14} />
 											)}
 										</button>
-										
+
 										<span
 											className={`text-sm truncate flex-1 ${isSelected ? "font-medium" : ""}`}
 											title={originalPartName}
@@ -700,7 +705,7 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 												<IoScanOutline size={14} />
 											</button>
 										)}
-										
+
 										{/* Selection checkbox - more visually clear */}
 										<button
 											type="button"
@@ -763,7 +768,7 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 				{/* Settings button */}
 				<button
 					type="button"
-					className={`py-2 px-3 text-gray-500 hover:text-blue-600 ${showSettings ? 'text-blue-600' : ''}`}
+					className={`py-2 px-3 text-gray-500 hover:text-blue-600 ${showSettings ? "text-blue-600" : ""}`}
 					onClick={() => setShowSettings(!showSettings)}
 					title="Настройки подсветки"
 				>
@@ -775,7 +780,10 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 			{showSettings && (
 				<div className="mb-3 p-2 bg-gray-50 border border-gray-200 rounded-lg">
 					<div className="flex items-center gap-3">
-						<label htmlFor="highlight-toggle" className="flex items-center text-sm gap-1.5 cursor-pointer">
+						<label
+							htmlFor="highlight-toggle"
+							className="flex items-center text-sm gap-1.5 cursor-pointer"
+						>
 							<input
 								type="checkbox"
 								id="highlight-toggle"
@@ -785,10 +793,15 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 							/>
 							Подсветка деталей
 						</label>
-						
+
 						{highlightEnabled && (
 							<div className="flex items-center gap-2 ml-auto">
-								<label htmlFor="highlight-color" className="text-sm text-gray-700">Цвет:</label>
+								<label
+									htmlFor="highlight-color"
+									className="text-sm text-gray-700"
+								>
+									Цвет:
+								</label>
 								<input
 									type="color"
 									id="highlight-color"
@@ -826,7 +839,7 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 							)}
 						</div>
 					</div>
-          
+
 					{/* Selection info and actions bar */}
 					<div className="mb-3 flex items-center bg-blue-50 p-2 rounded-lg justify-between">
 						<div className="text-sm">
@@ -838,7 +851,7 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 								<span className="text-gray-500">Выберите детали для шага</span>
 							)}
 						</div>
-						
+
 						<button
 							type="button"
 							className="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm flex items-center gap-1"
@@ -891,7 +904,8 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 						{/* Selection summary */}
 						<div className="bg-blue-50 p-2 rounded-md">
 							<div className="text-sm text-blue-700">
-								Выбрано деталей: <span className="font-bold">{selectedParts.length}</span>
+								Выбрано деталей:{" "}
+								<span className="font-bold">{selectedParts.length}</span>
 								{selectedParts.length === 0 && (
 									<div className="text-red-600 text-xs mt-1">
 										Нужно выбрать хотя бы одну деталь
@@ -909,7 +923,7 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 								<IoArrowBackOutline size={16} />
 								<span>Назад</span>
 							</button>
-							
+
 							<div className="flex gap-2">
 								{isEditingStep && (
 									<button
@@ -939,8 +953,11 @@ const AssemblyStepBuilder: React.FC<AssemblyStepBuilderProps> = ({
 			{activeTab === "parts" && (
 				<div className="mt-3">
 					<div className="max-h-80 overflow-y-auto pr-1 pb-1">
-						<RenderPartGroup 
-							group={filterParts(groupPartsByHierarchy(availableParts), searchQuery)} 
+						<RenderPartGroup
+							group={filterParts(
+								groupPartsByHierarchy(availableParts),
+								searchQuery,
+							)}
 						/>
 					</div>
 				</div>

@@ -53,7 +53,7 @@ const InstructionSettings: React.FC<InstructionSettingsProps> = ({
 	) => {
 		onPreviousStepsOpacityChange(Number.parseFloat(e.target.value));
 	};
-	
+
 	const handleBackgroundColorInputChange = (
 		e: React.ChangeEvent<HTMLInputElement>,
 	) => {
@@ -221,7 +221,7 @@ const InstructionSettings: React.FC<InstructionSettingsProps> = ({
 						</div>
 					</div>
 				)}
-				
+
 				{/* Настройка цвета фона */}
 				<div className="flex items-center gap-3">
 					<label
@@ -255,4 +255,4 @@ const InstructionSettings: React.FC<InstructionSettingsProps> = ({
 	);
 };
 
-export default InstructionSettings; 
+export default InstructionSettings;
