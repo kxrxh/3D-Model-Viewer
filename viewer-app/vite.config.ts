@@ -5,10 +5,12 @@ import tailwindcssPlugin from "@tailwindcss/vite";
 export default defineConfig({
 	plugins: [react(), tailwindcssPlugin()],
 	preview: {
-		allowedHosts: ["www.assembly3d.ru"],
+		host: true,
+		allowedHosts: ["www.assembly3d.ru", "assembly3d.ru"],
 	},
 	server: {
-		allowedHosts: ["www.assembly3d.ru"],
+		host: true,
+		allowedHosts: ["www.assembly3d.ru", "assembly3d.ru"],
 	},
 	build: {
 		sourcemap: "hidden",
