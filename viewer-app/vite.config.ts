@@ -4,10 +4,10 @@ import tailwindcssPlugin from "@tailwindcss/vite";
 // https://vitejs.dev/config/
 export default defineConfig({
 	plugins: [react(), tailwindcssPlugin()],
-	server: {
-		host: "0.0.0.0",
-	},
 	preview: {
+		allowedHosts: ["www.assembly3d.ru"],
+	},
+	server: {
 		allowedHosts: ["www.assembly3d.ru"],
 	},
 	build: {
