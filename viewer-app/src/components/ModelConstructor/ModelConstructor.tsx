@@ -25,6 +25,7 @@ import { Model } from "../common/core";
 import PartFocusController from "../common/controls/PartFocusController";
 import { InstructionBuilder } from "./ui";
 import InstructionSettings from "./ui/InstructionSettings";
+import InstructionSteps from "./ui/InstructionSteps";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { MdKeyboardArrowLeft } from "react-icons/md";
 import { IoSettingsOutline } from "react-icons/io5";
@@ -63,12 +64,12 @@ interface ModelConstructorProps {
 	onReset: () => void;
 }
 
-export default function ModelConstructor({
+const ModelConstructor: React.FC<ModelConstructorProps> = ({
 	modelUrl,
 	isLoading,
 	setIsLoading,
 	onReset,
-}: ModelConstructorProps) {
+}) => {
 	const modelState = useModelState();
 	const performanceState = usePerformanceProfiles();
 	const { toasts, showToast, hideToast } = useToast();
@@ -82,6 +83,8 @@ export default function ModelConstructor({
 	const [autoRotationEnabled, setAutoRotationEnabled] = useState<boolean>(true); // Enable by default
 	const [backgroundColor, setBackgroundColor] = useState<string>("#E2E8F0"); // Default background
 	const [displayMode, setDisplayMode] = useState<'all' | 'selected'>('all');
+	const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
+	const [editingStep, setEditingStep] = useState<InstructionStep | null>(null);
 
 	const {
 		modelParts,
@@ -119,12 +122,16 @@ export default function ModelConstructor({
 	const getPartsUsedInSteps = useCallback(() => {
 		const usedParts = new Set<string>();
 		for (const step of instructions) {
+			// Skip the current editing step
+			if (editingStep && step.id === editingStep.id) {
+				continue;
+			}
 			for (const part of step.parts) {
 				usedParts.add(part);
 			}
 		}
 		return Array.from(usedParts);
-	}, [instructions]);
+	}, [instructions, editingStep]);
 
 	const handleVisibilityChange = useCallback(
 		(newVisibleParts: Record<string, boolean>) => {
@@ -206,6 +213,8 @@ export default function ModelConstructor({
 			// Clear highlighting when instructions are updated (step created/edited)
 			setSelectedPartIds([]);
 			setCurrentStepParts([]);
+			// Clear editing step when instructions change
+			setEditingStep(null);
 		},
 		[setCurrentStepParts],
 	);
@@ -274,11 +283,6 @@ export default function ModelConstructor({
 		},
 		[setCurrentStepParts],
 	);
-
-	// Handle parts selector open
-	const handlePartsSelectorOpen = useCallback(() => {
-		setShowPartsSelector(true);
-	}, []);
 
 	// Handle parts selector close
 	const handlePartsSelectorClose = useCallback(() => {
@@ -466,6 +470,23 @@ export default function ModelConstructor({
 		],
 	);
 
+	const handleEditStep = (step: InstructionStep | null) => {
+		if (step) {
+			setEditingStep(step);
+			const index = instructions.findIndex((s) => s.id === step.id);
+			setCurrentStepIndex(index);
+			handleStepPartsFocus(step.parts);
+			// Set selected parts when editing a step
+			setSelectedPartIds(step.parts);
+		} else {
+			setEditingStep(null);
+			setCurrentStepIndex(-1);
+			handleStepPartsFocus([]);
+			// Clear selected parts when not editing
+			setSelectedPartIds([]);
+		}
+	};
+
 	return (
 		<div className="w-full h-screen relative bg-gradient-to-br from-slate-100 to-slate-200">
 			{isLoading && <LoadingSpinner text="Загрузка модели..." />}
@@ -486,24 +507,21 @@ export default function ModelConstructor({
 
 			<Widget
 				title="Инструкция по сборке"
-				initialPosition={{ x: 10, y: 70 }}
-				minWidth={680}
+				initialPosition={{ x: 20, y: 70 }}
+				minWidth={400}
 			>
 				<InstructionBuilder
 					instructions={instructions}
 					onInstructionsChange={handleInstructionsChange}
 					onVisibilityChange={handleVisibilityChange}
 					onPartFocus={handlePartFocus}
-					onStepPartsFocus={handleStepPartsFocus}
 					showToast={showToast}
 					highlightEnabled={highlightEnabled}
 					onHighlightEnabledChange={handleHighlightEnabledChange}
 					highlightColor={highlightColor}
 					onHighlightColorChange={handleHighlightColorChange}
 					previousStepsTransparency={previousStepsTransparency}
-					onPreviousStepsTransparencyChange={
-						handlePreviousStepsTransparencyChange
-					}
+					onPreviousStepsTransparencyChange={handlePreviousStepsTransparencyChange}
 					previousStepsOpacity={previousStepsOpacity}
 					onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
 					autoRotationEnabled={autoRotationEnabled}
@@ -511,12 +529,33 @@ export default function ModelConstructor({
 					truncateName={truncateName}
 					backgroundColor={backgroundColor}
 					onBackgroundColorChange={handleBackgroundColorChange}
-					availableParts={Object.keys(modelParts || {})}
-					onPartsSelectorOpen={handlePartsSelectorOpen}
+					availableParts={getPartsUsedInSteps()}
+					onPartsSelectorOpen={() => setShowPartsSelector(true)}
 					selectedParts={selectedPartIds}
-					onSelectedPartsChange={handlePartsChange}
+					onSelectedPartsChange={setSelectedPartIds}
 					displayMode={displayMode}
 					onDisplayModeChange={handleDisplayModeChange}
+					modelUrl={modelUrl}
+					editingStep={editingStep}
+					onEditingStepChange={handleEditStep}
+				/>
+			</Widget>
+
+			{/* Instruction Steps Widget */}
+			<Widget
+				title="Шаги инструкции"
+				initialPosition={{ x: 420, y: 70 }}
+				minWidth={400}
+			>
+				<InstructionSteps
+					instructions={instructions}
+					onInstructionsChange={handleInstructionsChange}
+					onPartFocus={handlePartFocus}
+					onStepPartsFocus={handleStepPartsFocus}
+					showToast={showToast}
+					currentStepIndex={currentStepIndex}
+					setCurrentStepIndex={setCurrentStepIndex}
+					onEditingStepChange={handleEditStep}
 				/>
 			</Widget>
 
@@ -608,4 +647,6 @@ export default function ModelConstructor({
 			</ToastContainer>
 		</div>
 	);
-}
+};
+
+export default ModelConstructor;

@@ -41,12 +41,10 @@ function Model({
 
 	// Apply material and geometry settings to meshes
 	useEffect(() => {
-		console.log('Model: Initializing materials');
 		scene.traverse((child) => {
 			if (child instanceof THREE.Mesh && child.material) {
 				// Store original materials for later restoration
 				if (!originalMaterials.current.has(child)) {
-					console.log(`Model: Storing original material for ${child.name || child.uuid}`);
 					const material =
 						child.material instanceof THREE.Material
 							? child.material
@@ -95,7 +93,6 @@ function Model({
 	// Initialize model: map meshes to paths and find groups/meshes
 	useEffect(() => {
 		if (!initialized.current) {
-			console.log('Model: Initializing mesh paths');
 			const parts: Record<string, boolean> = {};
 			meshToPath.current = {};
 
@@ -125,14 +122,12 @@ function Model({
 						if (!meshRefs[fullPath]) {
 							meshRefs[fullPath] = child; // Reference the mesh directly
 						}
-						console.log(`Model: Mapped mesh ${child.uuid} to path ${fullPath}`);
 					} else {
 						// Handle root-level meshes (no parent groups)
 						const meshPath = child.name || `mesh_${child.uuid}`;
 						meshToPath.current[child.uuid] = meshPath;
 						parts[meshPath] = true;
 						meshRefs[meshPath] = child;
-						console.log(`Model: Mapped root mesh ${child.uuid} to path ${meshPath}`);
 					}
 				}
 			});
@@ -145,11 +140,6 @@ function Model({
 
 	// Update visibility and materials of meshes based on current state
 	useEffect(() => {
-		console.log('Model: Updating materials and visibility');
-		console.log('Model: Current step parts:', currentStepParts);
-		console.log('Model: Highlight enabled:', highlightEnabled);
-		console.log('Model: Highlight color:', highlightColor);
-		
 		scene.traverse((child) => {
 			if (child instanceof THREE.Mesh) {
 				const fullPath = meshToPath.current[child.uuid];
@@ -159,12 +149,6 @@ function Model({
 					// Determine if this part should be visible
 					const isVisible = visibleParts[fullPath] !== false;
 
-					console.log(`Model: Processing mesh ${fullPath}:`, {
-						isInCurrentStep,
-						isVisible,
-						hasMaterial: !!child.material
-					});
-
 					// Set visibility
 					child.visible = isVisible;
 
@@ -172,7 +156,6 @@ function Model({
 						// Get the original material
 						const originalMaterial = originalMaterials.current.get(child);
 						if (!originalMaterial) {
-							console.log(`Model: No original material found for ${fullPath}`);
 							return;
 						}
 
@@ -200,7 +183,6 @@ function Model({
 							isInCurrentStep &&
 							material instanceof THREE.MeshStandardMaterial
 						) {
-							console.log(`Model: Applying highlight to ${fullPath}`);
 							material.color.set(highlightColor);
 							material.emissive.set(highlightColor).multiplyScalar(0.2);
 						}
