@@ -74,7 +74,9 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 		name: "",
 		description: "",
 	});
-	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+		{},
+	);
 
 	// Update form when editingStep changes
 	useEffect(() => {
@@ -162,7 +164,10 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 				showToast?.("Инструкции и модель успешно экспортированы", "success");
 			});
 		} catch (error) {
-			showToast?.(`Ошибка при экспорте: ${error instanceof Error ? error.message : "Неизвестная ошибка"}`, "error");
+			showToast?.(
+				`Ошибка при экспорте: ${error instanceof Error ? error.message : "Неизвестная ошибка"}`,
+				"error",
+			);
 		}
 	};
 
@@ -272,23 +277,37 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-4">
 							<div className="flex items-center gap-2">
-								<span className="text-xs font-medium text-gray-500">Режим:</span>
+								<span className="text-xs font-medium text-gray-500">
+									Режим:
+								</span>
 								<button
 									type="button"
-									onClick={() => handleDisplayModeChange(displayMode === "all" ? "selected" : "all")}
+									onClick={() =>
+										handleDisplayModeChange(
+											displayMode === "all" ? "selected" : "all",
+										)
+									}
 									className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
 										displayMode === "selected" ? "bg-red-600" : "bg-gray-200"
 									}`}
-									title={displayMode === "all" ? "Показать изолированные детали" : "Показать все детали"}
+									title={
+										displayMode === "all"
+											? "Показать изолированные детали"
+											: "Показать все детали"
+									}
 								>
 									<span
 										className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
-											displayMode === "selected" ? "translate-x-6" : "translate-x-1"
+											displayMode === "selected"
+												? "translate-x-6"
+												: "translate-x-1"
 										}`}
 									/>
 								</button>
 								<span className="text-xs font-medium text-gray-700">
-									{displayMode === "all" ? "Все детали" : "Изолированные детали"}
+									{displayMode === "all"
+										? "Все детали"
+										: "Изолированные детали"}
 								</span>
 							</div>
 						</div>

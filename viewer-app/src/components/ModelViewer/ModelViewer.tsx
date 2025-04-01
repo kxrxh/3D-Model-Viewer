@@ -109,18 +109,21 @@ export default function ModelViewer({
 
 	// Update currentStepParts when currentStep changes
 	useEffect(() => {
-		console.log('Current step changed:', currentStep);
-		console.log('Instructions:', instructions);
-		
+		console.log("Current step changed:", currentStep);
+		console.log("Instructions:", instructions);
+
 		if (currentStep === 0 || !instructions.length) {
-			console.log('Setting currentStepParts to empty array');
+			console.log("Setting currentStepParts to empty array");
 			setCurrentStepParts([]);
 			return;
 		}
 
 		const stepIndex = currentStep - 1;
 		if (stepIndex >= 0 && stepIndex < instructions.length) {
-			console.log('Setting currentStepParts to:', instructions[stepIndex].parts);
+			console.log(
+				"Setting currentStepParts to:",
+				instructions[stepIndex].parts,
+			);
 			setCurrentStepParts(instructions[stepIndex].parts);
 		}
 	}, [currentStep, instructions, setCurrentStepParts]);
@@ -142,8 +145,8 @@ export default function ModelViewer({
 				"Изменение состояния подсветки:",
 				enabled ? "включена" : "выключена",
 			);
-			console.log('Current step:', currentStep);
-			console.log('Current step parts:', currentStepParts);
+			console.log("Current step:", currentStep);
+			console.log("Current step parts:", currentStepParts);
 			setHighlightEnabled(enabled);
 			showToast(
 				`Подсветка деталей ${enabled ? "включена" : "выключена"}`,

@@ -198,9 +198,7 @@ const Widget = ({
 						height: "100%",
 					}}
 				>
-					<div 
-						className="absolute right-0 top-0 bottom-0 w-1 bg-transparent hover:bg-white/20 transition-colors"
-					/>
+					<div className="absolute right-0 top-0 bottom-0 w-1 bg-transparent hover:bg-white/20 transition-colors" />
 				</div>
 			</div>
 		</div>

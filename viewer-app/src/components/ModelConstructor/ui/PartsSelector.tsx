@@ -226,13 +226,16 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		level?: number;
 	}) => {
 		const currentPath = path ? `${path}/${group.name}` : group.name;
-		const isExpanded = group.name === "root" ? true : (groupsExpanded[currentPath] ?? false);
+		const isExpanded =
+			group.name === "root" ? true : (groupsExpanded[currentPath] ?? false);
 		const groupSelectionState = getGroupSelectionState(group);
 
 		// Check if group has any parts used in other steps
-		const hasUsedParts = group.parts.some(part => {
+		const hasUsedParts = group.parts.some((part) => {
 			if ("isGroup" in part && part.isGroup) {
-				return collectPartIdsInGroup(part).some(id => partsUsedInSteps.includes(id));
+				return collectPartIdsInGroup(part).some((id) =>
+					partsUsedInSteps.includes(id),
+				);
 			}
 			return partsUsedInSteps.includes(part.originalName);
 		});
@@ -276,27 +279,32 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 		return (
 			<div>
 				{group.name !== "root" && (
-					<div className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg border ${
-						hasUsedParts
-							? 'border-blue-200 bg-blue-50 hover:bg-blue-100'
-							: groupSelectionState === "all"
-								? 'border-red-200 bg-red-50 hover:bg-red-100'
-								: 'border-gray-200 bg-white hover:bg-gray-50'
-					} mb-1.5 transition-colors shadow-sm`}>
+					<div
+						className={`flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg border ${
+							hasUsedParts
+								? "border-blue-200 bg-blue-50 hover:bg-blue-100"
+								: groupSelectionState === "all"
+									? "border-red-200 bg-red-50 hover:bg-red-100"
+									: "border-gray-200 bg-white hover:bg-gray-50"
+						} mb-1.5 transition-colors shadow-sm`}
+					>
 						<input
 							type="checkbox"
 							className={`w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 transition-colors ${
-								hasUsedParts ? 'opacity-50 cursor-not-allowed' : ''
+								hasUsedParts ? "opacity-50 cursor-not-allowed" : ""
 							}`}
 							checked={hasUsedParts || groupSelectionState === "all"}
 							disabled={hasUsedParts}
 							ref={(input) => {
 								if (input) {
-									input.indeterminate = !hasUsedParts && groupSelectionState === "partial";
+									input.indeterminate =
+										!hasUsedParts && groupSelectionState === "partial";
 								}
 							}}
 							onClick={(e) => e.stopPropagation()}
-							onChange={() => !hasUsedParts && handleGroupSelectionToggle(group)}
+							onChange={() =>
+								!hasUsedParts && handleGroupSelectionToggle(group)
+							}
 							title={group.name}
 						/>
 						<button
@@ -305,13 +313,15 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 							className="flex items-center gap-2 flex-1 min-w-0 h-full"
 							aria-expanded={isExpanded}
 						>
-							<span className={`flex-shrink-0 transition-transform duration-200 ease-in-out ${isExpanded ? 'rotate-0' : '-rotate-90'} ${
-								hasUsedParts
-									? 'text-blue-400 hover:text-blue-600'
-									: groupSelectionState === "all"
-										? 'text-red-400 hover:text-red-600'
-										: 'text-gray-400 hover:text-gray-600'
-							}`}>
+							<span
+								className={`flex-shrink-0 transition-transform duration-200 ease-in-out ${isExpanded ? "rotate-0" : "-rotate-90"} ${
+									hasUsedParts
+										? "text-blue-400 hover:text-blue-600"
+										: groupSelectionState === "all"
+											? "text-red-400 hover:text-red-600"
+											: "text-gray-400 hover:text-gray-600"
+								}`}
+							>
 								{isExpanded ? (
 									<IoRemoveOutline size={18} aria-label="Свернуть" />
 								) : (
@@ -321,10 +331,10 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 							<span
 								className={`text-sm font-medium truncate flex-1 ${
 									hasUsedParts
-										? 'text-blue-700'
+										? "text-blue-700"
 										: groupSelectionState === "all"
-											? 'text-red-700'
-											: 'text-gray-900'
+											? "text-red-700"
+											: "text-gray-900"
 								}`}
 								title={group.name}
 							>
@@ -355,7 +365,11 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 							}
 
 							const partDetail = part as PartDetail;
-							const matchesSearch = !searchQuery || partDetail.originalName.toLowerCase().includes(searchQuery.toLowerCase());
+							const matchesSearch =
+								!searchQuery ||
+								partDetail.originalName
+									.toLowerCase()
+									.includes(searchQuery.toLowerCase());
 							if (!matchesSearch) {
 								return null;
 							}
@@ -363,17 +377,19 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 							const isSelected = localSelectedParts.includes(
 								partDetail.originalName,
 							);
-							const isUsedInOtherSteps = partsUsedInSteps.includes(partDetail.originalName);
+							const isUsedInOtherSteps = partsUsedInSteps.includes(
+								partDetail.originalName,
+							);
 
 							return (
 								<label
 									key={partDetail.originalName}
 									className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer group transition-colors ${
 										isUsedInOtherSteps
-											? 'bg-blue-50/90 hover:bg-blue-100/90 border border-blue-100'
+											? "bg-blue-50/90 hover:bg-blue-100/90 border border-blue-100"
 											: isSelected
-												? 'bg-red-50/90 hover:bg-red-100/90 border border-red-100'
-												: 'hover:bg-gray-100 border border-transparent'
+												? "bg-red-50/90 hover:bg-red-100/90 border border-red-100"
+												: "hover:bg-gray-100 border border-transparent"
 									}`}
 								>
 									<input
@@ -389,18 +405,18 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 											}
 										}}
 										className={`w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 transition-colors ${
-											isUsedInOtherSteps ? 'opacity-50 cursor-not-allowed' : ''
+											isUsedInOtherSteps ? "opacity-50 cursor-not-allowed" : ""
 										}`}
 									/>
 									<div className="flex-1 min-w-0 w-full">
 										<div className="flex flex-col min-w-0">
-											<span 
+											<span
 												className={`text-sm transition-colors truncate ${
 													isUsedInOtherSteps
-														? 'text-blue-700 group-hover:text-blue-800'
+														? "text-blue-700 group-hover:text-blue-800"
 														: isSelected
-															? 'text-red-700 group-hover:text-red-800'
-															: 'text-gray-700 group-hover:text-gray-900'
+															? "text-red-700 group-hover:text-red-800"
+															: "text-gray-700 group-hover:text-gray-900"
 												}`}
 												title={partDetail.displayName}
 											>
@@ -445,7 +461,7 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 						onClick={() => {
 							// Filter out parts that are used in other steps
 							const availablePartsToSelect = availableParts.filter(
-								part => !partsUsedInSteps.includes(part)
+								(part) => !partsUsedInSteps.includes(part),
 							);
 							onPartsChange(availablePartsToSelect);
 						}}

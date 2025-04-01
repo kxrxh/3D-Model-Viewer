@@ -49,7 +49,9 @@ const InstructionSteps: React.FC<InstructionStepsProps> = ({
 	onEditingStepChange,
 }) => {
 	const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
-	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+		{},
+	);
 
 	// Function to delete a step
 	const handleDeleteStep = (stepId: number) => {
@@ -80,9 +82,9 @@ const InstructionSteps: React.FC<InstructionStepsProps> = ({
 		[onPartFocus],
 	);
 
-	const handleMoveStep = (index: number, direction: 'up' | 'down') => {
-		const newIndex = direction === 'up' ? index - 1 : index + 1;
-		
+	const handleMoveStep = (index: number, direction: "up" | "down") => {
+		const newIndex = direction === "up" ? index - 1 : index + 1;
+
 		if (newIndex < 0 || newIndex >= instructions.length) return;
 
 		const items = Array.from(instructions);
@@ -97,18 +99,12 @@ const InstructionSteps: React.FC<InstructionStepsProps> = ({
 
 		// Update instructions and current step index
 		onInstructionsChange(reindexedItems);
-		
+
 		if (currentStepIndex === index) {
 			setCurrentStepIndex(newIndex);
-		} else if (
-			currentStepIndex > index &&
-			currentStepIndex <= newIndex
-		) {
+		} else if (currentStepIndex > index && currentStepIndex <= newIndex) {
 			setCurrentStepIndex(currentStepIndex - 1);
-		} else if (
-			currentStepIndex < index &&
-			currentStepIndex >= newIndex
-		) {
+		} else if (currentStepIndex < index && currentStepIndex >= newIndex) {
 			setCurrentStepIndex(currentStepIndex + 1);
 		}
 
@@ -410,14 +406,10 @@ const InstructionSteps: React.FC<InstructionStepsProps> = ({
 											</span>
 											<button
 												type="button"
-												onClick={() =>
-													toggleStepExpansion(step.id)
-												}
+												onClick={() => toggleStepExpansion(step.id)}
 												className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
 											>
-												{expandedSteps.has(step.id)
-													? "Скрыть"
-													: "Показать"}
+												{expandedSteps.has(step.id) ? "Скрыть" : "Показать"}
 											</button>
 										</div>
 									</div>
@@ -455,7 +447,7 @@ const InstructionSteps: React.FC<InstructionStepsProps> = ({
 										<div className="flex flex-col gap-1 ml-2 border-l border-gray-200 pl-2">
 											<button
 												type="button"
-												onClick={() => handleMoveStep(index, 'up')}
+												onClick={() => handleMoveStep(index, "up")}
 												disabled={index === 0}
 												className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 												title="Переместить вверх"
@@ -464,7 +456,7 @@ const InstructionSteps: React.FC<InstructionStepsProps> = ({
 											</button>
 											<button
 												type="button"
-												onClick={() => handleMoveStep(index, 'down')}
+												onClick={() => handleMoveStep(index, "down")}
 												disabled={index === instructions.length - 1}
 												className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 												title="Переместить вниз"
@@ -492,4 +484,4 @@ const InstructionSteps: React.FC<InstructionStepsProps> = ({
 	);
 };
 
-export default InstructionSteps; 
+export default InstructionSteps;

@@ -48,7 +48,8 @@ const StartPage: React.FC<StartPageProps> = ({
 			<div className="relative w-full max-w-2xl p-8 mx-4">
 				<div className="backdrop-blur-xl bg-white/5 rounded-2xl p-8 shadow-xl border border-white/10">
 					<h1 className="text-4xl font-bold text-white mb-8 text-center">
-						{mode === ApplicationMode.VIEWER ? "Просмотр" : "Конструктор"} 3D моделей
+						{mode === ApplicationMode.VIEWER ? "Просмотр" : "Конструктор"} 3D
+						моделей
 					</h1>
 
 					{error && (

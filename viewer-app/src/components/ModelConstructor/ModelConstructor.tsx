@@ -145,7 +145,13 @@ const ModelConstructor: React.FC = () => {
 			controlsRef.current.reset();
 			controlsRef.current.update();
 		}
-	}, [setSelectedParts, setCurrentStepParts, setSelectedPartIds, setCurrentStepIndex, setEditingStep]);
+	}, [
+		setSelectedParts,
+		setCurrentStepParts,
+		setSelectedPartIds,
+		setCurrentStepIndex,
+		setEditingStep,
+	]);
 
 	const handleInstructionsChange = useCallback(
 		(newInstructions: InstructionStep[]) => {
