@@ -192,6 +192,7 @@ function App() {
 					isLoading={isLoading}
 					setIsLoading={setIsLoading}
 					onReset={resetState}
+					onInstructionsChange={setInstructions}
 				/>
 			) : (
 				<ModelViewer

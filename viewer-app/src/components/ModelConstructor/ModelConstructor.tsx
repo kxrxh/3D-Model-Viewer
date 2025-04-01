@@ -62,6 +62,7 @@ interface ModelConstructorProps {
 	isLoading: boolean;
 	setIsLoading: Dispatch<SetStateAction<boolean>>;
 	onReset: () => void;
+	onInstructionsChange: (instructions: InstructionStep[]) => void;
 }
 
 const ModelConstructor: React.FC<ModelConstructorProps> = ({
@@ -70,6 +71,7 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 	isLoading,
 	setIsLoading,
 	onReset,
+	onInstructionsChange,
 }) => {
 	const modelState = useModelState();
 	const performanceState = usePerformanceProfiles();
@@ -208,14 +210,16 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 	}, [setSelectedParts]);
 
 	const handleInstructionsChange = useCallback(
-		() => {
+		(newInstructions: InstructionStep[]) => {
+			// Update instructions in parent component
+			onInstructionsChange(newInstructions);
 			// Clear highlighting when instructions are updated (step created/edited)
 			setSelectedPartIds([]);
 			setCurrentStepParts([]);
 			// Clear editing step when instructions change
 			setEditingStep(null);
 		},
-		[setCurrentStepParts],
+		[setCurrentStepParts, onInstructionsChange],
 	);
 
 	// Handle focusing on a specific part

@@ -442,7 +442,13 @@ const PartsSelector: React.FC<PartsSelectorProps> = ({
 				<div className="flex gap-2">
 					<button
 						type="button"
-						onClick={() => onPartsChange(availableParts)}
+						onClick={() => {
+							// Filter out parts that are used in other steps
+							const availablePartsToSelect = availableParts.filter(
+								part => !partsUsedInSteps.includes(part)
+							);
+							onPartsChange(availablePartsToSelect);
+						}}
 						className="text-sm py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
 						disabled={!isEditing}
 					>
