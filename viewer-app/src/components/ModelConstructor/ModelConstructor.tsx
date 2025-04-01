@@ -66,6 +66,7 @@ interface ModelConstructorProps {
 
 const ModelConstructor: React.FC<ModelConstructorProps> = ({
 	modelUrl,
+	instructions,
 	isLoading,
 	setIsLoading,
 	onReset,
@@ -112,7 +113,6 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 	const [showSettings, setShowSettings] = useState(false);
 	const controlsRef = useRef<OrbitControlsImpl>(null);
 	const sceneRef = useRef(null);
-	const [instructions, setInstructions] = useState<InstructionStep[]>([]);
 
 	// Add state for parts selector with proper typing
 	const [showPartsSelector, setShowPartsSelector] = useState(false);
@@ -208,8 +208,7 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 	}, [setSelectedParts]);
 
 	const handleInstructionsChange = useCallback(
-		(newInstructions: InstructionStep[]) => {
-			setInstructions(newInstructions);
+		() => {
 			// Clear highlighting when instructions are updated (step created/edited)
 			setSelectedPartIds([]);
 			setCurrentStepParts([]);

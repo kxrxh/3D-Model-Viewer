@@ -151,7 +151,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 	const handleDisplayModeChange = (mode: "all" | "selected") => {
 		onDisplayModeChange?.(mode);
 		showToast?.(
-			`Режим отображения: ${mode === "all" ? "все детали" : "только выбранные"}`,
+			`Режим отображения: ${mode === "all" ? "все детали" : "изолированные детали"}`,
 			"info",
 		);
 	};
@@ -279,7 +279,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 									className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
 										displayMode === "selected" ? "bg-red-600" : "bg-gray-200"
 									}`}
-									title={displayMode === "all" ? "Показать только выбранные" : "Показать все детали"}
+									title={displayMode === "all" ? "Показать изолированные детали" : "Показать все детали"}
 								>
 									<span
 										className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
@@ -288,7 +288,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 									/>
 								</button>
 								<span className="text-xs font-medium text-gray-700">
-									{displayMode === "all" ? "Все детали" : "Только выбранные"}
+									{displayMode === "all" ? "Все детали" : "Изолированные детали"}
 								</span>
 							</div>
 						</div>
