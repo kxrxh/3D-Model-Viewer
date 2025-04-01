@@ -26,4 +26,4 @@ COPY --from=builder /usr/src/app/dist/. ./dist/
 
 EXPOSE 3000
 
-CMD ["bun", "run", "preview"]
+CMD ["bun", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3000"]
