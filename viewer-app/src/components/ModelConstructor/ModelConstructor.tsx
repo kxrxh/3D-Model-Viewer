@@ -135,13 +135,17 @@ const ModelConstructor: React.FC = () => {
 
 	const resetView = useCallback(() => {
 		setSelectedParts([]);
+		setCurrentStepParts([]);
+		setSelectedPartIds([]);
+		setCurrentStepIndex(-1);
+		setEditingStep(null);
 		if (controlsRef.current) {
 			controlsRef.current.object.position.set(...DEFAULT_CAMERA_POSITION);
 			controlsRef.current.target.set(...DEFAULT_CAMERA_TARGET);
 			controlsRef.current.reset();
 			controlsRef.current.update();
 		}
-	}, [setSelectedParts]);
+	}, [setSelectedParts, setCurrentStepParts, setSelectedPartIds, setCurrentStepIndex, setEditingStep]);
 
 	const handleInstructionsChange = useCallback(
 		(newInstructions: InstructionStep[]) => {
