@@ -9,6 +9,7 @@ import {
 	processFiles,
 	createModelUrl,
 } from "./utils/fileUtils";
+import { ApplicationMode } from "./components/types";
 
 function App() {
 	const [modelUrl, setModelUrl] = useState<string | null>(null);
@@ -17,6 +18,8 @@ function App() {
 	const [instructions, setInstructions] = useState<InstructionStep[]>([]);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
+	const [mode, setMode] = useState<ApplicationMode>(ApplicationMode.VIEWER);
+	const [userConfirmed, setUserConfirmed] = useState<boolean>(false);
 
 	const handleModelUpload = useCallback(
 		async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -154,19 +157,28 @@ function App() {
 		setError(null);
 	}, [modelUrl]);
 
+	const handleContinue = useCallback(() => {
+		setUserConfirmed(true);
+	}, []);
+
 	// Determine if we should show the viewer or uploader
-	const showViewer = hasModel && modelUrl && hasInstructions;
+	const showViewer = userConfirmed && modelUrl && 
+		(mode === ApplicationMode.CONSTRUCTOR ? hasModel : (hasModel && hasInstructions));
 
 	return (
 		<div className="w-full h-screen relative bg-gradient-to-br from-slate-100 to-slate-200">
 			{!showViewer ? (
 				<StartPage
+					mode={mode}
+					onModeChange={setMode}
 					onModelUpload={handleModelUpload}
 					onInstructionUpload={handleInstructionUpload}
 					onMultiUpload={handleMultiUpload}
 					hasModel={hasModel}
 					hasInstructions={hasInstructions}
 					error={error}
+					onContinue={handleContinue}
+					userConfirmed={userConfirmed}
 				/>
 			) : (
 				<ModelViewer
