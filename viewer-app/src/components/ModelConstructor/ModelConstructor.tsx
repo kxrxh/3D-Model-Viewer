@@ -1,13 +1,4 @@
-import {
-	useRef,
-	useState,
-	useCallback,
-	useEffect,
-	useMemo,
-	Suspense,
-	type Dispatch,
-	type SetStateAction,
-} from "react";
+import { useRef, useCallback, useEffect, useMemo, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
 	OrbitControls,
@@ -32,6 +23,7 @@ import { IoSettingsOutline } from "react-icons/io5";
 
 import { useModelState } from "./hooks";
 import { usePerformanceProfiles, useToast } from "../common/hooks";
+import { useModelConstructor } from "./context/ModelConstructorContext";
 
 import { Widget } from "../common/components";
 import { ControlPanel } from "./ui";
@@ -56,38 +48,44 @@ const truncateName = (name: string, maxLength = 35) => {
 		: shortName;
 };
 
-interface ModelConstructorProps {
-	modelUrl: string | null;
-	instructions: InstructionStep[];
-	isLoading: boolean;
-	setIsLoading: Dispatch<SetStateAction<boolean>>;
-	onReset: () => void;
-	onInstructionsChange: (instructions: InstructionStep[]) => void;
-}
-
-const ModelConstructor: React.FC<ModelConstructorProps> = ({
-	modelUrl,
-	instructions,
-	isLoading,
-	setIsLoading,
-	onReset,
-	onInstructionsChange,
-}) => {
+const ModelConstructor: React.FC = () => {
 	const modelState = useModelState();
 	const performanceState = usePerformanceProfiles();
 	const { toasts, showToast, hideToast } = useToast();
-
-	// Add state for instructions
-	const [highlightColor, setHighlightColor] = useState<string>("#f87171"); // Default to a light red color
-	const [highlightEnabled, setHighlightEnabled] = useState<boolean>(true);
-	const [previousStepsTransparency, setPreviousStepsTransparency] =
-		useState<boolean>(true); // Enable by default
-	const [previousStepsOpacity, setPreviousStepsOpacity] = useState<number>(0.4); // 40% opacity by default
-	const [autoRotationEnabled, setAutoRotationEnabled] = useState<boolean>(true); // Enable by default
-	const [backgroundColor, setBackgroundColor] = useState<string>("#E2E8F0"); // Default background
-	const [displayMode, setDisplayMode] = useState<'all' | 'selected'>('all');
-	const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1);
-	const [editingStep, setEditingStep] = useState<InstructionStep | null>(null);
+	const {
+		modelUrl,
+		instructions,
+		isLoading,
+		setIsLoading,
+		onReset,
+		onInstructionsChange,
+		highlightColor,
+		highlightEnabled,
+		previousStepsTransparency,
+		previousStepsOpacity,
+		autoRotationEnabled,
+		setAutoRotationEnabled,
+		backgroundColor,
+		displayMode,
+		currentStepIndex,
+		editingStep,
+		selectedPartIds,
+		showPartsSelector,
+		setShowPartsSelector,
+		showSettings,
+		showStats,
+		setShowStats,
+		setShowSettings,
+		setSelectedPartIds,
+		setCurrentStepIndex,
+		setEditingStep,
+		setHighlightEnabled,
+		setHighlightColor,
+		setPreviousStepsTransparency,
+		setPreviousStepsOpacity,
+		setBackgroundColor,
+		setDisplayMode,
+	} = useModelConstructor();
 
 	const {
 		modelParts,
@@ -110,15 +108,8 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 		handlePerformanceChange,
 	} = performanceState;
 
-	// Component state
-	const [showStats, setShowStats] = useState(false);
-	const [showSettings, setShowSettings] = useState(false);
 	const controlsRef = useRef<OrbitControlsImpl>(null);
 	const sceneRef = useRef(null);
-
-	// Add state for parts selector with proper typing
-	const [showPartsSelector, setShowPartsSelector] = useState(false);
-	const [selectedPartIds, setSelectedPartIds] = useState<string[]>([]);
 
 	// Add function to collect all parts used in steps
 	const getPartsUsedInSteps = useCallback(() => {
@@ -142,63 +133,6 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 		[setVisibleParts],
 	);
 
-	const handleHighlightColorChange = useCallback((color: string) => {
-		setHighlightColor(color);
-	}, []);
-
-	const handleHighlightEnabledChange = useCallback(
-		(enabled: boolean) => {
-			console.log(
-				"Изменение состояния подсветки:",
-				enabled ? "включена" : "выключена",
-			);
-			setHighlightEnabled(enabled);
-			showToast(
-				`Подсветка деталей ${enabled ? "включена" : "выключена"}`,
-				enabled ? "success" : "info",
-			);
-		},
-		[showToast],
-	);
-
-	const handlePreviousStepsTransparencyChange = useCallback(
-		(enabled: boolean) => {
-			console.log(
-				"Изменение прозрачности предыдущих шагов:",
-				enabled ? "включена" : "выключена",
-			);
-			setPreviousStepsTransparency(enabled);
-			showToast(
-				`Прозрачность предыдущих шагов ${enabled ? "включена" : "выключена"}`,
-				"info",
-			);
-		},
-		[showToast],
-	);
-
-	const handlePreviousStepsOpacityChange = useCallback((opacity: number) => {
-		setPreviousStepsOpacity(opacity);
-	}, []);
-
-	const handleAutoRotationChange = useCallback(
-		(enabled: boolean) => {
-			console.log(
-				"Изменение автовращения модели:",
-				enabled ? "включено" : "выключено",
-			);
-			setAutoRotationEnabled(enabled);
-			showToast(
-				`Автовращение модели ${enabled ? "включено" : "выключено"}`,
-				"info",
-			);
-		},
-		[showToast],
-	);
-
-	const handleBackgroundColorChange = useCallback((color: string) => {
-		setBackgroundColor(color);
-	}, []);
-
 	const resetView = useCallback(() => {
 		setSelectedParts([]);
 		if (controlsRef.current) {
@@ -219,7 +153,12 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 			// Clear editing step when instructions change
 			setEditingStep(null);
 		},
-		[setCurrentStepParts, onInstructionsChange],
+		[
+			setCurrentStepParts,
+			onInstructionsChange,
+			setSelectedPartIds,
+			setEditingStep,
+		],
 	);
 
 	// Handle focusing on a specific part
@@ -243,6 +182,7 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 			setSelectedParts,
 			showToast,
 			autoRotationEnabled,
+			setAutoRotationEnabled,
 		],
 	);
 
@@ -274,6 +214,7 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 			setCurrentStepParts,
 			showToast,
 			autoRotationEnabled,
+			setAutoRotationEnabled,
 		],
 	);
 
@@ -284,21 +225,21 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 			// Update current step parts for highlighting
 			setCurrentStepParts(partIds);
 		},
-		[setCurrentStepParts],
+		[setCurrentStepParts, setSelectedPartIds],
 	);
 
 	// Handle parts selector close
 	const handlePartsSelectorClose = useCallback(() => {
 		setShowPartsSelector(false);
-	}, []);
+	}, [setShowPartsSelector]);
 
 	// Update visibility based on display mode and selected parts
 	useEffect(() => {
 		if (!modelParts) return;
 
 		const newVisibleParts: Record<string, boolean> = {};
-		
-		if (displayMode === 'all') {
+
+		if (displayMode === "all") {
 			// Show all parts
 			for (const partId of Object.keys(modelParts)) {
 				newVisibleParts[partId] = true;
@@ -306,17 +247,19 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 		} else {
 			// Show only selected parts and current step parts
 			for (const partId of Object.keys(modelParts)) {
-				newVisibleParts[partId] = selectedPartIds.includes(partId) || currentStepParts.includes(partId);
+				newVisibleParts[partId] =
+					selectedPartIds.includes(partId) || currentStepParts.includes(partId);
 			}
 		}
-		
-		setVisibleParts(newVisibleParts);
-	}, [displayMode, modelParts, selectedPartIds, currentStepParts, setVisibleParts]);
 
-	// Handle display mode change
-	const handleDisplayModeChange = useCallback((mode: 'all' | 'selected') => {
-		setDisplayMode(mode);
-	}, []);
+		setVisibleParts(newVisibleParts);
+	}, [
+		displayMode,
+		modelParts,
+		selectedPartIds,
+		currentStepParts,
+		setVisibleParts,
+	]);
 
 	// Handle model loading completion
 	useEffect(() => {
@@ -520,24 +463,24 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 					onPartFocus={handlePartFocus}
 					showToast={showToast}
 					highlightEnabled={highlightEnabled}
-					onHighlightEnabledChange={handleHighlightEnabledChange}
+					onHighlightEnabledChange={setHighlightEnabled}
 					highlightColor={highlightColor}
-					onHighlightColorChange={handleHighlightColorChange}
+					onHighlightColorChange={setHighlightColor}
 					previousStepsTransparency={previousStepsTransparency}
-					onPreviousStepsTransparencyChange={handlePreviousStepsTransparencyChange}
+					onPreviousStepsTransparencyChange={setPreviousStepsTransparency}
 					previousStepsOpacity={previousStepsOpacity}
-					onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
+					onPreviousStepsOpacityChange={setPreviousStepsOpacity}
 					autoRotationEnabled={autoRotationEnabled}
-					onAutoRotationChange={handleAutoRotationChange}
+					onAutoRotationChange={setAutoRotationEnabled}
 					truncateName={truncateName}
 					backgroundColor={backgroundColor}
-					onBackgroundColorChange={handleBackgroundColorChange}
+					onBackgroundColorChange={setBackgroundColor}
 					availableParts={getPartsUsedInSteps()}
 					onPartsSelectorOpen={() => setShowPartsSelector(true)}
 					selectedParts={selectedPartIds}
 					onSelectedPartsChange={setSelectedPartIds}
 					displayMode={displayMode}
-					onDisplayModeChange={handleDisplayModeChange}
+					onDisplayModeChange={setDisplayMode}
 					modelUrl={modelUrl}
 					editingStep={editingStep}
 					onEditingStepChange={handleEditStep}
@@ -586,19 +529,17 @@ const ModelConstructor: React.FC<ModelConstructorProps> = ({
 					<div className="p-4">
 						<InstructionSettings
 							highlightEnabled={highlightEnabled}
-							onHighlightEnabledChange={handleHighlightEnabledChange}
+							onHighlightEnabledChange={setHighlightEnabled}
 							highlightColor={highlightColor}
-							onHighlightColorChange={handleHighlightColorChange}
+							onHighlightColorChange={setHighlightColor}
 							previousStepsTransparency={previousStepsTransparency}
-							onPreviousStepsTransparencyChange={
-								handlePreviousStepsTransparencyChange
-							}
+							onPreviousStepsTransparencyChange={setPreviousStepsTransparency}
 							previousStepsOpacity={previousStepsOpacity}
-							onPreviousStepsOpacityChange={handlePreviousStepsOpacityChange}
+							onPreviousStepsOpacityChange={setPreviousStepsOpacity}
 							autoRotationEnabled={autoRotationEnabled}
-							onAutoRotationChange={handleAutoRotationChange}
+							onAutoRotationChange={setAutoRotationEnabled}
 							backgroundColor={backgroundColor}
-							onBackgroundColorChange={handleBackgroundColorChange}
+							onBackgroundColorChange={setBackgroundColor}
 						/>
 					</div>
 				</Widget>
