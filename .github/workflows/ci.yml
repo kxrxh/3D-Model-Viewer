@@ -85,7 +85,6 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: ${{ secrets.PORT }}
-        script_stop: true
         script: |
           if [ ! -d "3D-Model-Viewer" ]; then
             echo "Directory 3D-Model-Viewer does not exist. Cloning repository..."
