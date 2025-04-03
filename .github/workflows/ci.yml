@@ -13,8 +13,6 @@ permissions:
 jobs:
   setup:
     runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
 
     steps:
     - uses: actions/checkout@v4
