@@ -113,12 +113,14 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 
 			// Шаг 0 показывает полную модель независимо от режима
 			if (stepIndex === 0) {
-				for (const part of basePartNames) { // Use basePartNames
+				for (const part of basePartNames) {
+					// Use basePartNames
 					newVisibleParts[part] = true;
 				}
 			} else {
 				// Сначала установим все детали как скрытые
-				for (const part of basePartNames) { // Use basePartNames
+				for (const part of basePartNames) {
+					// Use basePartNames
 					newVisibleParts[part] = false;
 				}
 
@@ -156,9 +158,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 			const baseParts =
 				allPartNames.length > 0
 					? allPartNames
-					: Array.from(
-							new Set(instructions.flatMap((step) => step.parts)),
-						);
+					: Array.from(new Set(instructions.flatMap((step) => step.parts)));
 
 			const newVisibility = calculateVisibleParts(
 				currentStep,
@@ -176,7 +176,15 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		// Dependencies: Recalculate when step, mode, all parts list, or the calculation function changes.
 		// onVisibilityChange is potentially unstable, so we compare results before calling it.
 		// instructions is included because calculateVisibleParts depends on it.
-	}, [currentStep, viewMode, allPartNames, calculateVisibleParts, onVisibilityChange, instructions, visibleParts]);
+	}, [
+		currentStep,
+		viewMode,
+		allPartNames,
+		calculateVisibleParts,
+		onVisibilityChange,
+		instructions,
+		visibleParts,
+	]);
 
 	// Прекращаем озвучку при смене шага
 	// biome-ignore lint/correctness/useExhaustiveDependencies: We only want to reset speech when step changes
