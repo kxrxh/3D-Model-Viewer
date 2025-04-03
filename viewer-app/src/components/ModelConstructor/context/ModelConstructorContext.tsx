@@ -10,6 +10,7 @@ import type { InstructionStep } from "../../common/types";
 interface ModelConstructorContextType {
 	// Model state
 	modelUrl: string | null;
+	modelFileName: string | null;
 	isLoading: boolean;
 	setIsLoading: (loading: boolean) => void;
 	onReset: () => void;
@@ -60,6 +61,7 @@ const ModelConstructorContext = createContext<
 export const ModelConstructorProvider: React.FC<{
 	children: ReactNode;
 	modelUrl: string | null;
+	modelFileName: string | null;
 	instructions: InstructionStep[];
 	isLoading: boolean;
 	setIsLoading: (loading: boolean) => void;
@@ -68,6 +70,7 @@ export const ModelConstructorProvider: React.FC<{
 }> = ({
 	children,
 	modelUrl,
+	modelFileName,
 	instructions,
 	isLoading,
 	setIsLoading,
@@ -126,6 +129,7 @@ export const ModelConstructorProvider: React.FC<{
 
 	const value = {
 		modelUrl,
+		modelFileName,
 		isLoading,
 		setIsLoading,
 		onReset,

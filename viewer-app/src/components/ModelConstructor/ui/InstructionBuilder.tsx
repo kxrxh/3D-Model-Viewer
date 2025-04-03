@@ -9,6 +9,7 @@ import {
 } from "react-icons/io5";
 import { exportInstructions } from "../utils/exportUtils";
 import type { InstructionStep } from "../../common/types";
+import { useModelConstructor } from "../context/ModelConstructorContext";
 
 interface PartGroup {
 	name: string;
@@ -84,6 +85,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 		{},
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the hidden file input
+	const { modelFileName } = useModelConstructor();
 
 	// Update form when editingStep changes
 	useEffect(() => {
@@ -168,7 +170,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 
 	const handleExportInstructions = async () => {
 		try {
-			await exportInstructions(instructions, modelUrl, () => {
+			await exportInstructions(instructions, modelUrl, modelFileName, () => {
 				showToast?.("Инструкции и модель успешно экспортированы", "success");
 			});
 		} catch (error) {

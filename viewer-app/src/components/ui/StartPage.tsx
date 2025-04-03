@@ -12,6 +12,7 @@ interface StartPageProps {
 	onModeChange: (mode: ApplicationMode) => void;
 	onContinue: () => void;
 	userConfirmed: boolean;
+	onReset: () => void;
 }
 
 const StartPage: React.FC<StartPageProps> = ({
@@ -25,6 +26,7 @@ const StartPage: React.FC<StartPageProps> = ({
 	onModeChange,
 	onContinue,
 	userConfirmed,
+	onReset,
 }) => {
 	const canContinue =
 		mode === ApplicationMode.CONSTRUCTOR

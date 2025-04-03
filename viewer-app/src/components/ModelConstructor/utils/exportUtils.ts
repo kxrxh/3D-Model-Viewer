@@ -10,6 +10,7 @@ export interface ExportData {
 export const exportInstructions = async (
 	instructions: InstructionStep[],
 	modelUrl: string | null,
+	modelFileName: string | null,
 	onSuccess?: () => void,
 ): Promise<void> => {
 	const zip = new JSZip();
@@ -30,9 +31,13 @@ export const exportInstructions = async (
 	if (modelUrl) {
 		try {
 			const response = await fetch(modelUrl);
+			if (!response.ok) {
+				throw new Error(`Failed to fetch model: ${response.statusText}`);
+			}
 			const modelBlob = await response.blob();
-			const modelFileName = modelUrl.split("/").pop() || "model.glb";
-			zip.file(modelFileName, modelBlob);
+			// Use the provided filename or fallback to a default name
+			const actualModelFileName = modelFileName || "model.glb";
+			zip.file(actualModelFileName, modelBlob);
 		} catch (error) {
 			console.error("Error adding model to zip:", error);
 		}

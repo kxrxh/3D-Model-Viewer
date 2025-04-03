@@ -15,6 +15,7 @@ import { ModelConstructorProvider } from "./components/ModelConstructor/context/
 
 function App() {
 	const [modelUrl, setModelUrl] = useState<string | null>(null);
+	const [modelFileName, setModelFileName] = useState<string | null>(null);
 	const [hasModel, setHasModel] = useState<boolean>(false);
 	const [hasInstructions, setHasInstructions] = useState<boolean>(false);
 	const [instructions, setInstructions] = useState<InstructionStep[]>([]);
@@ -39,6 +40,7 @@ function App() {
 
 					const urlWithTimestamp = createModelUrl(file);
 					setModelUrl(urlWithTimestamp);
+					setModelFileName(file.name);
 					setIsLoading(true);
 					setHasModel(true);
 					setError(null);
@@ -52,6 +54,7 @@ function App() {
 					);
 					setHasModel(false);
 					setModelUrl(null);
+					setModelFileName(null);
 				}
 			}
 		},
@@ -106,12 +109,18 @@ function App() {
 					if (modelUrl) URL.revokeObjectURL(modelUrl);
 					const urlWithTimestamp = createModelUrl(modelFile);
 					setModelUrl(urlWithTimestamp);
+					setModelFileName(modelFile.name);
 					setIsLoading(true);
 					setHasModel(true);
 					setError(null);
 					console.log(
 						`Model loaded: ${modelFile.name}, size: ${(modelFile.size / 1024 / 1024).toFixed(2)} MB`,
 					);
+				} else {
+					if (modelUrl) URL.revokeObjectURL(modelUrl);
+					setModelUrl(null);
+					setModelFileName(null);
+					setHasModel(false);
 				}
 
 				// Handle instruction file
@@ -127,13 +136,19 @@ function App() {
 
 					setInstructions(parsedInstructions);
 					setHasInstructions(true);
-					setError(null);
+					if (!error?.includes("model")) setError(null);
+				} else {
+					setInstructions([]);
+					setHasInstructions(false);
 				}
 
+				// Set error only if neither valid model nor valid instruction file was found
 				if (!modelFile && !instructionFile) {
 					setError(
 						"No valid files found. Please upload a model (.glb/.gltf) and/or instructions (.json)",
 					);
+				} else if (!modelFile && instructionFile && !error) {
+					setError(null);
 				}
 			} catch (err) {
 				setError(
@@ -141,25 +156,29 @@ function App() {
 				);
 				if (modelUrl) URL.revokeObjectURL(modelUrl);
 				setModelUrl(null);
+				setModelFileName(null);
 				setHasModel(false);
 				setInstructions([]);
 				setHasInstructions(false);
 			}
 		},
-		[modelUrl],
+		[modelUrl, error],
 	);
 
 	const resetState = useCallback(() => {
 		if (modelUrl) URL.revokeObjectURL(modelUrl);
 		setModelUrl(null);
+		setModelFileName(null);
 		setInstructions([]);
 		setHasInstructions(false);
 		setHasModel(false);
 		setIsLoading(false);
 		setError(null);
+		setUserConfirmed(false);
 	}, [modelUrl]);
 
 	const handleContinue = useCallback(() => {
+		setError(null);
 		setUserConfirmed(true);
 	}, []);
 
@@ -185,10 +204,12 @@ function App() {
 					error={error}
 					onContinue={handleContinue}
 					userConfirmed={userConfirmed}
+					onReset={resetState}
 				/>
 			) : mode === ApplicationMode.CONSTRUCTOR ? (
 				<ModelConstructorProvider
 					modelUrl={modelUrl}
+					modelFileName={modelFileName}
 					instructions={instructions}
 					isLoading={isLoading}
 					setIsLoading={setIsLoading}
