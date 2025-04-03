@@ -65,6 +65,7 @@ interface InstructionViewerProps {
 	truncateName?: (name: string, maxLength?: number) => string;
 	backgroundColor?: string;
 	onBackgroundColorChange?: (color: string) => void;
+	allPartNames?: string[];
 }
 
 const InstructionViewer: React.FC<InstructionViewerProps> = ({
@@ -88,6 +89,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	truncateName = (name) => name.split("/").pop() || name,
 	backgroundColor = DEFAULT_BACKGROUND_COLOR,
 	onBackgroundColorChange,
+	allPartNames = [],
 }) => {
 	const [viewMode, setViewMode] = useState<"cumulative" | "isolated">(
 		"cumulative",
@@ -100,14 +102,81 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		{},
 	);
 
+	// Обновляет видимость деталей в зависимости от текущего шага и режима просмотра
+	const calculateVisibleParts = useCallback(
+		(
+			stepIndex: number,
+			mode: "cumulative" | "isolated",
+			basePartNames: string[], // Use the provided base list
+		) => {
+			const newVisibleParts: Record<string, boolean> = {};
+
+			// Шаг 0 показывает полную модель независимо от режима
+			if (stepIndex === 0) {
+				for (const part of basePartNames) { // Use basePartNames
+					newVisibleParts[part] = true;
+				}
+			} else {
+				// Сначала установим все детали как скрытые
+				for (const part of basePartNames) { // Use basePartNames
+					newVisibleParts[part] = false;
+				}
+
+				const actualStepIndex = stepIndex - 1;
+
+				if (mode === "cumulative") {
+					// Кумулятивный режим: показываем все детали до текущего шага включительно
+					for (let i = 0; i <= actualStepIndex; i++) {
+						if (instructions[i]?.parts) {
+							for (const part of instructions[i].parts) {
+								newVisibleParts[part] = true;
+							}
+						}
+					}
+				} else {
+					// Изолированный режим: показываем только детали текущего шага
+					if (instructions[actualStepIndex]?.parts) {
+						for (const part of instructions[actualStepIndex].parts) {
+							newVisibleParts[part] = true;
+						}
+					}
+				}
+			}
+
+			return newVisibleParts;
+		},
+		[instructions], // calculateVisibleParts depends only on instructions
+	);
+
 	// Обновляем видимость при изменении шага или режима просмотра
 	useEffect(() => {
+		// Only run if instructions are loaded
 		if (instructions && instructions.length > 0) {
-			const newVisibility = calculateVisibleParts(currentStep, viewMode);
-			setVisibleParts(newVisibility);
-			onVisibilityChange(newVisibility);
+			// Determine the base list of parts to work with
+			const baseParts =
+				allPartNames.length > 0
+					? allPartNames
+					: Array.from(
+							new Set(instructions.flatMap((step) => step.parts)),
+						);
+
+			const newVisibility = calculateVisibleParts(
+				currentStep,
+				viewMode,
+				baseParts,
+			);
+
+			// Check if visibility actually changed before updating state and calling the prop
+			// This helps prevent the infinite loop if onVisibilityChange is not memoized
+			if (JSON.stringify(visibleParts) !== JSON.stringify(newVisibility)) {
+				setVisibleParts(newVisibility);
+				onVisibilityChange(newVisibility);
+			}
 		}
-	}, [instructions, currentStep, viewMode, onVisibilityChange]);
+		// Dependencies: Recalculate when step, mode, all parts list, or the calculation function changes.
+		// onVisibilityChange is potentially unstable, so we compare results before calling it.
+		// instructions is included because calculateVisibleParts depends on it.
+	}, [currentStep, viewMode, allPartNames, calculateVisibleParts, onVisibilityChange, instructions, visibleParts]);
 
 	// Прекращаем озвучку при смене шага
 	// biome-ignore lint/correctness/useExhaustiveDependencies: We only want to reset speech when step changes
@@ -128,56 +197,6 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 		if (currentStep > 0) {
 			onStepChange(currentStep - 1);
 		}
-	};
-
-	// Обновляет видимость деталей в зависимости от текущего шага и режима просмотра
-	const calculateVisibleParts = (
-		stepIndex: number,
-		mode: "cumulative" | "isolated",
-	) => {
-		const newVisibleParts: Record<string, boolean> = {};
-
-		const allPartNames = new Set<string>();
-		for (const step of instructions) {
-			for (const part of step.parts) {
-				// Handle hierarchical part names (with '/')
-				allPartNames.add(part);
-			}
-		}
-
-		// Шаг 0 показывает полную модель независимо от режима
-		if (stepIndex === 0) {
-			for (const part of allPartNames) {
-				newVisibleParts[part] = true;
-			}
-		} else {
-			// Сначала установим все детали как скрытые
-			for (const part of allPartNames) {
-				newVisibleParts[part] = false;
-			}
-
-			const actualStepIndex = stepIndex - 1;
-
-			if (mode === "cumulative") {
-				// Кумулятивный режим: показываем все детали до текущего шага включительно
-				for (let i = 0; i <= actualStepIndex; i++) {
-					if (instructions[i]?.parts) {
-						for (const part of instructions[i].parts) {
-							newVisibleParts[part] = true;
-						}
-					}
-				}
-			} else {
-				// Изолированный режим: показываем только детали текущего шага
-				if (instructions[actualStepIndex]?.parts) {
-					for (const part of instructions[actualStepIndex].parts) {
-						newVisibleParts[part] = true;
-					}
-				}
-			}
-		}
-
-		return newVisibleParts;
 	};
 
 	const handleViewModeChange = (mode: "cumulative" | "isolated") => {
@@ -655,7 +674,7 @@ const InstructionViewer: React.FC<InstructionViewerProps> = ({
 	);
 
 	return (
-		<div className="p-1">
+		<div className="p-2">
 			{/* Заголовок и прогресс */}
 			<div className="flex flex-col mb-5">
 				<div className="flex justify-between items-center mb-3">

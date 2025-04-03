@@ -168,7 +168,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 
 	const handleExportInstructions = async () => {
 		try {
-			await exportInstructions(instructions, availableParts, modelUrl, () => {
+			await exportInstructions(instructions, modelUrl, () => {
 				showToast?.("Инструкции и модель успешно экспортированы", "success");
 			});
 		} catch (error) {

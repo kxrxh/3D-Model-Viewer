@@ -5,12 +5,10 @@ export interface ExportData {
 	version: string;
 	createdAt: string;
 	assemblyStages: InstructionStep[];
-	availableParts: string[];
 }
 
 export const exportInstructions = async (
 	instructions: InstructionStep[],
-	availableParts: string[],
 	modelUrl: string | null,
 	onSuccess?: () => void,
 ): Promise<void> => {
@@ -21,7 +19,6 @@ export const exportInstructions = async (
 		version: "1.0",
 		createdAt: new Date().toISOString(),
 		assemblyStages: instructions,
-		availableParts: availableParts,
 	};
 
 	const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], {

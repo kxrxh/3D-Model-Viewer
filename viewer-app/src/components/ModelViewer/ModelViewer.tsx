@@ -466,6 +466,7 @@ export default function ModelViewer({
 						truncateName={truncateName}
 						backgroundColor={backgroundColor}
 						onBackgroundColorChange={handleBackgroundColorChange}
+						allPartNames={Object.keys(modelParts || {})}
 					/>
 				</Widget>
 			)}
