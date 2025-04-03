@@ -485,7 +485,7 @@ const ModelConstructor: React.FC = () => {
 					truncateName={truncateName}
 					backgroundColor={backgroundColor}
 					onBackgroundColorChange={setBackgroundColor}
-					availableParts={getPartsUsedInSteps()}
+					availableParts={selectedPartIds}
 					onPartsSelectorOpen={() => setShowPartsSelector(true)}
 					selectedParts={selectedPartIds}
 					onSelectedPartsChange={setSelectedPartIds}

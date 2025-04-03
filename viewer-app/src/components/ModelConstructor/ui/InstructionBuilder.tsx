@@ -1,10 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
 	IoAddOutline,
 	IoList,
 	IoDownloadOutline,
 	IoCloseCircleOutline,
 	IoRemoveOutline,
+	IoCloudUploadOutline,
 } from "react-icons/io5";
 import { exportInstructions } from "../utils/exportUtils";
 import type { InstructionStep } from "../../common/types";
@@ -52,6 +53,11 @@ interface InstructionBuilderProps {
 	onEditingStepChange: (step: InstructionStep | null) => void;
 }
 
+// Define a type for the expected structure of the imported JSON
+interface SubAssemblyImport {
+	steps: Omit<InstructionStep, "id">[]; // Steps without IDs, as they will be reassigned
+}
+
 const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 	instructions,
 	onInstructionsChange,
@@ -77,6 +83,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 	const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
 		{},
 	);
+	const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the hidden file input
 
 	// Update form when editingStep changes
 	useEffect(() => {
@@ -88,12 +95,13 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 			// Update selected parts when editing a step
 			onSelectedPartsChange?.(editingStep.parts);
 		} else {
-			setNewStepForm({
-				name: "",
-				description: "",
-			});
-			// Clear selected parts when not editing
-			onSelectedPartsChange?.([]);
+			// Don't automatically clear selection when editing stops
+			// The form reset is handled elsewhere (e.g., after import, after add/save)
+			// setNewStepForm({
+			// 	name: "",
+			// 	description: "",
+			// });
+			// onSelectedPartsChange?.([]); // <-- REMOVE THIS LINE
 		}
 	}, [editingStep, onSelectedPartsChange]);
 
@@ -169,6 +177,203 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 				"error",
 			);
 		}
+	};
+
+	// Function to handle sub-assembly import
+	const handleImportSubAssembly = (
+		event: React.ChangeEvent<HTMLInputElement>,
+	) => {
+		const file = event.target.files?.[0];
+		if (!file) {
+			showToast?.("Файл не выбран", "error");
+			return;
+		}
+
+		// Store the selection state *before* the import starts
+		const initialSelectedParts = [...selectedParts];
+
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const content = e.target?.result as string;
+				if (!content) {
+					throw new Error("Не удалось прочитать файл");
+				}
+				const importedData: unknown = JSON.parse(content);
+
+				// Basic validation - Check for 'assemblyStages' instead of 'steps'
+				if (
+					typeof importedData !== "object" ||
+					importedData === null ||
+					!Array.isArray((importedData as { assemblyStages?: unknown }).assemblyStages) // Check for assemblyStages
+				) {
+					throw new Error(
+						"Неверный формат файла. Ожидается JSON объект с полем 'assemblyStages' (массив).", // Updated error message
+					);
+				}
+
+				// Use 'assemblyStages' for extraction
+				const { assemblyStages: importedSteps } = importedData as { assemblyStages: Omit<InstructionStep, 'id'>[] };
+
+				if (importedSteps.length === 0) {
+					showToast?.("Импортированный файл не содержит шагов", "info");
+					return;
+				}
+
+				// 2. Process imported steps, map parts, and collect warnings
+				const remappedSteps: Omit<InstructionStep, 'id'>[] = [];
+				const missingParts = new Set<string>();
+
+				// Keep track of imported names that don't match any selected part
+				const unmatchedImportedNames = new Set<string>();
+
+				// Keep track of which initially selected parts are used by *any* imported step
+				const usedSelectedParts = new Set<string>();
+
+				for (const step of importedSteps) {
+					const stepMappedParts = new Set<string>();
+
+					for (const importedPartName of step.parts) {
+						const cleanImportedName = importedPartName.trim();
+						// Get the base name of the imported part - we use this for suffix checking
+						const importedBaseName = (cleanImportedName.split('/').pop() || cleanImportedName).trim();
+						let foundMatchForThisImportedName = false;
+
+						for (const availablePartFullName of availableParts) {
+							const cleanAvailableFullName = availablePartFullName.trim();
+							const segments = cleanAvailableFullName.split('/').map(s => s.trim());
+
+							// --- Check if ANY segment matches importedBaseName + suffix ---
+							let segmentMatchFound = false;
+							for (const segment of segments) {
+								if (segment.startsWith(importedBaseName)) {
+									const suffix = segment.substring(importedBaseName.length);
+									const isValidSuffix = suffix === '' || /^(_\d+)$/.test(suffix);
+									if (isValidSuffix) {
+										// We found a segment in the selected part that matches the imported base + suffix
+										segmentMatchFound = true;
+										break; // Stop checking segments for this availablePart
+									}
+								}
+							}
+							// --- End Segment Check ---
+
+							if (segmentMatchFound) {
+								// Log exactly what is being added
+								// console.log(`[Import] ===> Attempting to add to usedSelectedParts: '${availablePartFullName}'`); // <-- REMOVE LOG
+								usedSelectedParts.add(availablePartFullName);
+								stepMappedParts.add(availablePartFullName);
+								foundMatchForThisImportedName = true;
+								// Continue checking other available parts for this imported name
+							}
+						}
+
+						if (!foundMatchForThisImportedName) {
+							console.warn(`[Import] No selected part found containing a segment matching base '${importedBaseName}' (from: ${cleanImportedName})`);
+							missingParts.add(importedBaseName);
+							// Add the original imported name (that failed to match) to the unmatched set
+							unmatchedImportedNames.add(cleanImportedName);
+						}
+					}
+
+					// Final check for the step
+					const finalPartsArray = Array.from(stepMappedParts);
+
+					if (finalPartsArray.length > 0) {
+						remappedSteps.push({ ...step, parts: finalPartsArray });
+					} else {
+						console.warn(`[Import] Step '${step.name}' skipped (no selected parts matched). Imported names: ${step.parts.join(', ')}`);
+					}
+				}
+
+				// --- End: Enhanced Part Matching Logic ---
+
+				// Calculate which of the initially selected parts were NOT used by the import
+				console.log("[Import] Populated usedSelectedParts Set:", usedSelectedParts);
+				const unusedSelectedParts = initialSelectedParts.filter(part => !usedSelectedParts.has(part));
+				console.log("[Import] Filter result (unusedSelectedParts Array):", unusedSelectedParts);
+
+				// Update the main selection to only contain the unused parts
+				if (onSelectedPartsChange) {
+					console.log("[Import] Populated usedSelectedParts Set:", usedSelectedParts);
+					const unusedSelectedParts = initialSelectedParts.filter(part => !usedSelectedParts.has(part));
+					console.log("[Import] Filter result (unusedSelectedParts Array):", unusedSelectedParts);
+
+					// Delay this update slightly to ensure it happens after potential resets from onInstructionsChange
+					setTimeout(() => {
+						console.log("[Import] Calling onSelectedPartsChange with unused parts (delayed)...");
+						onSelectedPartsChange(unusedSelectedParts);
+					}, 0);
+				}
+
+				// Add the new steps with their mapped parts to the instructions
+				const maxId = instructions.reduce(
+					(max, step) => Math.max(max, step.id),
+					0,
+				);
+				const newSteps = remappedSteps.map((step, index) => ({
+					...step,
+					id: maxId + index + 1,
+					// Ensure description is at least an empty string if missing
+					description: step.description || "",
+				}));
+
+				if (newSteps.length > 0) {
+					onInstructionsChange([...instructions, ...newSteps]);
+				}
+
+				// Clear the new step form after import
+				setNewStepForm({ name: "", description: "" });
+
+				// Construct final feedback message
+				let feedbackMessage = `Подсборка импортирована: ${newSteps.length} шагов добавлено.`;
+				let feedbackType: "success" | "error" | "info" = "success";
+
+				if (missingParts.size > 0) {
+					feedbackMessage += " Предупреждения:";
+					feedbackType = "error"; // Use 'error' for higher visibility on warnings
+					if (missingParts.size > 0) {
+						feedbackMessage += ` ${missingParts.size} импортированных базовых имен не найдены ни в одном сегменте ВЫБРАННЫХ деталей (${[...missingParts].slice(0, 3).join(', ')}${missingParts.size > 3 ? '...' : ''}).`; // Adjusted message
+					}
+					if (unusedSelectedParts.length < initialSelectedParts.length) {
+						const usedCount = initialSelectedParts.length - unusedSelectedParts.length;
+						feedbackMessage += ` ${usedCount} деталей из исходного выделения были использованы в импортированных шагах.`;
+					}
+					if (unusedSelectedParts.length > 0 && usedSelectedParts.size > 0) {
+						feedbackMessage += ` ${unusedSelectedParts.length} деталей остались выделенными.`;
+					}
+					feedbackMessage += " Проверьте консоль для деталей.";
+				}
+
+				showToast?.(feedbackMessage, feedbackType);
+
+			} catch (error) {
+				console.error("Ошибка импорта подсборки:", error);
+				showToast?.(
+					`Ошибка импорта: ${error instanceof Error ? error.message : "Неизвестная ошибка"}`,
+					"error",
+				);
+			} finally {
+				// Reset file input to allow importing the same file again
+				if (fileInputRef.current) {
+					fileInputRef.current.value = "";
+				}
+			}
+		};
+
+		reader.onerror = () => {
+			showToast?.("Ошибка при чтении файла", "error");
+			if (fileInputRef.current) {
+				fileInputRef.current.value = "";
+			}
+		};
+
+		reader.readAsText(file);
+	};
+
+	// Trigger hidden file input click
+	const triggerFileInput = () => {
+		fileInputRef.current?.click();
 	};
 
 	const toggleGroupExpansion = useCallback((path: string) => {
@@ -312,6 +517,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 							</div>
 						</div>
 						<div className="flex items-center gap-2">
+							{/* Existing Export Button */}
 							<button
 								type="button"
 								onClick={handleExportInstructions}
@@ -324,6 +530,17 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 						</div>
 					</div>
 				</div>
+
+				{/* Hidden File Input */}
+				<input
+					type="file"
+					ref={fileInputRef}
+					onChange={handleImportSubAssembly}
+					accept=".json"
+					style={{ display: "none" }}
+					aria-hidden="true"
+					tabIndex={-1}
+				/>
 
 				{/* Main Content */}
 				<div className="flex-1 flex flex-col overflow-hidden">
@@ -407,10 +624,22 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 								<button
 									type="button"
 									onClick={editingStep ? handleSaveEdit : handleAddStep}
-									className="w-full px-4 py-2 text-sm font-medium bg-red-700 text-white rounded-lg hover:bg-red-800 flex items-center justify-center gap-2 shadow-md transition-all duration-200"
+									disabled={!newStepForm.name || selectedParts.length === 0}
+									className="w-full px-4 py-2 text-sm font-medium bg-red-700 text-white rounded-lg hover:bg-red-800 flex items-center justify-center gap-2 shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 								>
 									<IoAddOutline size={16} />
 									{editingStep ? "Сохранить изменения" : "Добавить шаг"}
+								</button>
+								{/* Moved Import Button */}
+								<button
+									type="button"
+									onClick={triggerFileInput}
+									disabled={selectedParts.length === 0}
+									className="w-full px-4 py-2 text-sm font-medium bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center justify-center gap-2 shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+									title={selectedParts.length === 0 ? "Выберите детали для импорта шагов в них" : "Импортировать подсборку из файла JSON"}
+								>
+									<IoCloudUploadOutline size={16} />
+									Импорт шагов
 								</button>
 							</div>
 						</div>
