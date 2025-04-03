@@ -1,7 +1,6 @@
 import JSZip from "jszip";
 import type { InstructionStep } from "../components/common/types";
 
-
 // Validate model file type and size
 export const validateModelFile = (file: File): string | null => {
 	const validTypes = [".glb", ".gltf"];
