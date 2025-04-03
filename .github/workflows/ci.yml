@@ -48,3 +48,22 @@ jobs:
     - name: Build
       working-directory: viewer-app
       run: bun run build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Deploy to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PORT }}
+        script: |
+          cd 3D-Model-Viewer
+          git pull
+          docker-compose down
+          docker-compose up --build -d
