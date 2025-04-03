@@ -26,7 +26,6 @@ const StartPage: React.FC<StartPageProps> = ({
 	onModeChange,
 	onContinue,
 	userConfirmed,
-	onReset,
 }) => {
 	const canContinue =
 		mode === ApplicationMode.CONSTRUCTOR

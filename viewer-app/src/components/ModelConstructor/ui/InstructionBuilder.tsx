@@ -54,11 +54,6 @@ interface InstructionBuilderProps {
 	onEditingStepChange: (step: InstructionStep | null) => void;
 }
 
-// Define a type for the expected structure of the imported JSON
-interface SubAssemblyImport {
-	steps: Omit<InstructionStep, "id">[]; // Steps without IDs, as they will be reassigned
-}
-
 const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 	instructions,
 	onInstructionsChange,
