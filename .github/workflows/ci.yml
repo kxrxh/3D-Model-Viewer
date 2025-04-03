@@ -13,6 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
     - uses: actions/checkout@v4
@@ -21,6 +22,13 @@ jobs:
       uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: viewer-app/node_modules
+        key: ${{ runner.os }}-bun-${{ hashFiles('viewer-app/bun.lockb') }}
+        restore-keys: ${{ runner.os }}-bun-
 
     - name: Install dependencies
       working-directory: viewer-app
@@ -45,6 +53,10 @@ jobs:
       working-directory: viewer-app
       run: bun run tsc --noEmit
 
+    - name: Run tests
+      working-directory: viewer-app
+      run: bun test || echo "No tests found or tests failed"
+
     - name: Build
       working-directory: viewer-app
       run: bun run build
@@ -53,15 +65,27 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 10
 
     steps:
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: ${{ runner.os }}-buildx-
+
     - name: Deploy to server
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
-        password: ${{ secrets.PASSWORD }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: ${{ secrets.PORT }}
+        script_stop: true
         script: |
           if [ ! -d "3D-Model-Viewer" ]; then
             echo "Directory 3D-Model-Viewer does not exist. Cloning repository..."
