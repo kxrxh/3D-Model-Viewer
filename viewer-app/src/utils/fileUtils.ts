@@ -1,7 +1,6 @@
 import JSZip from "jszip";
 import type { InstructionStep } from "../components/common/types";
 
-const MAX_MODEL_SIZE = 100 * 1024 * 1024; // 100MB limit
 
 // Validate model file type and size
 export const validateModelFile = (file: File): string | null => {
@@ -12,10 +11,6 @@ export const validateModelFile = (file: File): string | null => {
 		.substring(file.name.lastIndexOf("."));
 	if (!validTypes.includes(extension)) {
 		return "Invalid file type. Please upload a .glb or .gltf file.";
-	}
-
-	if (file.size > MAX_MODEL_SIZE) {
-		return "File size too large. Maximum size is 100MB.";
 	}
 
 	return null;
