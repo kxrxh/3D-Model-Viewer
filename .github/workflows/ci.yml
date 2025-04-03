@@ -63,7 +63,14 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         port: ${{ secrets.PORT }}
         script: |
-          cd 3D-Model-Viewer || exit 1
-          git pull
+          if [ ! -d "3D-Model-Viewer" ]; then
+            echo "Directory 3D-Model-Viewer does not exist. Cloning repository..."
+            git clone https://github.com/${{ github.repository }}.git
+            cd 3D-Model-Viewer || exit 1
+          else
+            echo "Directory 3D-Model-Viewer exists. Pulling changes..."
+            cd 3D-Model-Viewer || exit 1
+            git pull
+          fi
           docker-compose down
           docker-compose up --build -d
