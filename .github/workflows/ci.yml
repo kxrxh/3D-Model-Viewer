@@ -11,8 +11,10 @@ permissions:
   pull-requests: write
 
 jobs:
-  build:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
 
     steps:
     - uses: actions/checkout@v4
@@ -49,8 +51,52 @@ jobs:
       working-directory: viewer-app
       run: bun run build
 
+  lint_check:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+    - name: Install dependencies
+      working-directory: viewer-app
+      run: bun install --frozen-lockfile
+
+    - name: Format code check with Biome
+      working-directory: viewer-app
+      run: bun run format:check
+
+    - name: Lint with Biome
+      working-directory: viewer-app
+      run: bun run lint
+
+    - name: Type check
+      working-directory: viewer-app
+      run: bun run tsc --noEmit
+
+  build_check:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+    - name: Install dependencies
+      working-directory: viewer-app
+      run: bun install --frozen-lockfile
+
+    - name: Build
+      working-directory: viewer-app
+      run: bun run build
+
   deploy:
-    needs: build
+    needs: build_check
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
@@ -63,7 +109,7 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         port: ${{ secrets.PORT }}
         script: |
-          cd 3D-Model-Viewer
-          git pull
+          cd 3D-Model-Viewer || exit 1
+          git pull origin main
           docker-compose down
           docker-compose up --build -d
