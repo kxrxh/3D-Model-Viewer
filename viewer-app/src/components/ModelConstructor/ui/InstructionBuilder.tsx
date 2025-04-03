@@ -207,7 +207,9 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 				if (
 					typeof importedData !== "object" ||
 					importedData === null ||
-					!Array.isArray((importedData as { assemblyStages?: unknown }).assemblyStages) // Check for assemblyStages
+					!Array.isArray(
+						(importedData as { assemblyStages?: unknown }).assemblyStages,
+					) // Check for assemblyStages
 				) {
 					throw new Error(
 						"Неверный формат файла. Ожидается JSON объект с полем 'assemblyStages' (массив).", // Updated error message
@@ -215,7 +217,9 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 				}
 
 				// Use 'assemblyStages' for extraction
-				const { assemblyStages: importedSteps } = importedData as { assemblyStages: Omit<InstructionStep, 'id'>[] };
+				const { assemblyStages: importedSteps } = importedData as {
+					assemblyStages: Omit<InstructionStep, "id">[];
+				};
 
 				if (importedSteps.length === 0) {
 					showToast?.("Импортированный файл не содержит шагов", "info");
@@ -223,7 +227,7 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 				}
 
 				// 2. Process imported steps, map parts, and collect warnings
-				const remappedSteps: Omit<InstructionStep, 'id'>[] = [];
+				const remappedSteps: Omit<InstructionStep, "id">[] = [];
 				const missingParts = new Set<string>();
 
 				// Keep track of imported names that don't match any selected part
@@ -238,19 +242,24 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 					for (const importedPartName of step.parts) {
 						const cleanImportedName = importedPartName.trim();
 						// Get the base name of the imported part - we use this for suffix checking
-						const importedBaseName = (cleanImportedName.split('/').pop() || cleanImportedName).trim();
+						const importedBaseName = (
+							cleanImportedName.split("/").pop() || cleanImportedName
+						).trim();
 						let foundMatchForThisImportedName = false;
 
 						for (const availablePartFullName of availableParts) {
 							const cleanAvailableFullName = availablePartFullName.trim();
-							const segments = cleanAvailableFullName.split('/').map(s => s.trim());
+							const segments = cleanAvailableFullName
+								.split("/")
+								.map((s) => s.trim());
 
 							// --- Check if ANY segment matches importedBaseName + suffix ---
 							let segmentMatchFound = false;
 							for (const segment of segments) {
 								if (segment.startsWith(importedBaseName)) {
 									const suffix = segment.substring(importedBaseName.length);
-									const isValidSuffix = suffix === '' || /^(_\d+)$/.test(suffix);
+									const isValidSuffix =
+										suffix === "" || /^(_\d+)$/.test(suffix);
 									if (isValidSuffix) {
 										// We found a segment in the selected part that matches the imported base + suffix
 										segmentMatchFound = true;
@@ -271,7 +280,9 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 						}
 
 						if (!foundMatchForThisImportedName) {
-							console.warn(`[Import] No selected part found containing a segment matching base '${importedBaseName}' (from: ${cleanImportedName})`);
+							console.warn(
+								`[Import] No selected part found containing a segment matching base '${importedBaseName}' (from: ${cleanImportedName})`,
+							);
 							missingParts.add(importedBaseName);
 							// Add the original imported name (that failed to match) to the unmatched set
 							unmatchedImportedNames.add(cleanImportedName);
@@ -284,26 +295,46 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 					if (finalPartsArray.length > 0) {
 						remappedSteps.push({ ...step, parts: finalPartsArray });
 					} else {
-						console.warn(`[Import] Step '${step.name}' skipped (no selected parts matched). Imported names: ${step.parts.join(', ')}`);
+						console.warn(
+							`[Import] Step '${step.name}' skipped (no selected parts matched). Imported names: ${step.parts.join(", ")}`,
+						);
 					}
 				}
 
 				// --- End: Enhanced Part Matching Logic ---
 
 				// Calculate which of the initially selected parts were NOT used by the import
-				console.log("[Import] Populated usedSelectedParts Set:", usedSelectedParts);
-				const unusedSelectedParts = initialSelectedParts.filter(part => !usedSelectedParts.has(part));
-				console.log("[Import] Filter result (unusedSelectedParts Array):", unusedSelectedParts);
+				console.log(
+					"[Import] Populated usedSelectedParts Set:",
+					usedSelectedParts,
+				);
+				const unusedSelectedParts = initialSelectedParts.filter(
+					(part) => !usedSelectedParts.has(part),
+				);
+				console.log(
+					"[Import] Filter result (unusedSelectedParts Array):",
+					unusedSelectedParts,
+				);
 
 				// Update the main selection to only contain the unused parts
 				if (onSelectedPartsChange) {
-					console.log("[Import] Populated usedSelectedParts Set:", usedSelectedParts);
-					const unusedSelectedParts = initialSelectedParts.filter(part => !usedSelectedParts.has(part));
-					console.log("[Import] Filter result (unusedSelectedParts Array):", unusedSelectedParts);
+					console.log(
+						"[Import] Populated usedSelectedParts Set:",
+						usedSelectedParts,
+					);
+					const unusedSelectedParts = initialSelectedParts.filter(
+						(part) => !usedSelectedParts.has(part),
+					);
+					console.log(
+						"[Import] Filter result (unusedSelectedParts Array):",
+						unusedSelectedParts,
+					);
 
 					// Delay this update slightly to ensure it happens after potential resets from onInstructionsChange
 					setTimeout(() => {
-						console.log("[Import] Calling onSelectedPartsChange with unused parts (delayed)...");
+						console.log(
+							"[Import] Calling onSelectedPartsChange with unused parts (delayed)...",
+						);
 						onSelectedPartsChange(unusedSelectedParts);
 					}, 0);
 				}
@@ -335,10 +366,11 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 					feedbackMessage += " Предупреждения:";
 					feedbackType = "error"; // Use 'error' for higher visibility on warnings
 					if (missingParts.size > 0) {
-						feedbackMessage += ` ${missingParts.size} импортированных базовых имен не найдены ни в одном сегменте ВЫБРАННЫХ деталей (${[...missingParts].slice(0, 3).join(', ')}${missingParts.size > 3 ? '...' : ''}).`; // Adjusted message
+						feedbackMessage += ` ${missingParts.size} импортированных базовых имен не найдены ни в одном сегменте ВЫБРАННЫХ деталей (${[...missingParts].slice(0, 3).join(", ")}${missingParts.size > 3 ? "..." : ""}).`; // Adjusted message
 					}
 					if (unusedSelectedParts.length < initialSelectedParts.length) {
-						const usedCount = initialSelectedParts.length - unusedSelectedParts.length;
+						const usedCount =
+							initialSelectedParts.length - unusedSelectedParts.length;
 						feedbackMessage += ` ${usedCount} деталей из исходного выделения были использованы в импортированных шагах.`;
 					}
 					if (unusedSelectedParts.length > 0 && usedSelectedParts.size > 0) {
@@ -348,7 +380,6 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 				}
 
 				showToast?.(feedbackMessage, feedbackType);
-
 			} catch (error) {
 				console.error("Ошибка импорта подсборки:", error);
 				showToast?.(
@@ -638,7 +669,11 @@ const InstructionBuilder: React.FC<InstructionBuilderProps> = ({
 									onClick={triggerFileInput}
 									disabled={selectedParts.length === 0}
 									className="w-full px-4 py-2 text-sm font-medium bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center justify-center gap-2 shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-									title={selectedParts.length === 0 ? "Выберите детали для импорта шагов в них" : "Импортировать подсборку из файла JSON"}
+									title={
+										selectedParts.length === 0
+											? "Выберите детали для импорта шагов в них"
+											: "Импортировать подсборку из файла JSON"
+									}
 								>
 									<IoCloudUploadOutline size={16} />
 									Импорт шагов
