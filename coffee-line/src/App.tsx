@@ -44,13 +44,13 @@ function ErrorDisplay() {
 }
 
 // Clear the GLB model cache when changing models
-useGLTF.preload("/green.glb");
-useGLTF.preload("/green_2.glb");
-useGLTF.preload("/roasted.glb");
-useGLTF.preload("/roasted_2.glb");
-useGLTF.preload("/green-roasted.glb");
-useGLTF.preload("/green-roasted_2.glb");
-useGLTF.preload("/green-roasted_3.glb");
+useGLTF.preload("/coffeeLine/green.glb");
+useGLTF.preload("/coffeeLine/green_2.glb");
+useGLTF.preload("/coffeeLine/roasted.glb");
+useGLTF.preload("/coffeeLine/roasted_2.glb");
+useGLTF.preload("/coffeeLine/green_roasted.glb");
+useGLTF.preload("/coffeeLine/green_roasted_2.glb");
+useGLTF.preload("/coffeeLine/green_roasted_3.glb");
 
 function App() {
 	const [modelUrl, setModelUrl] = useState<string>("");
@@ -59,23 +59,23 @@ function App() {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const availableModels = [
-		{ name: "Зеленый", path: "/green.glb", id: "green" },
-		{ name: "Зеленый 2", path: "/green_2.glb", id: "green2" },
-		{ name: "Жареный", path: "/roasted.glb", id: "roasted" },
-		{ name: "Жареный 2", path: "/roasted_2.glb", id: "roasted2" },
+		{ name: "Зеленый", path: "/coffeeLine/green.glb", id: "green" },
+		{ name: "Зеленый 2", path: "/coffeeLine/green_2.glb", id: "green2" },
+		{ name: "Жареный", path: "/coffeeLine/roasted.glb", id: "roasted" },
+		{ name: "Жареный 2", path: "/coffeeLine/roasted_2.glb", id: "roasted2" },
 		{
 			name: "Зеленый+Жареный",
-			path: "/green_roasted.glb",
+			path: "/coffeeLine/green_roasted.glb",
 			id: "green-roasted",
 		},
 		{
 			name: "Зеленый+Жареный2",
-			path: "/green_roasted_2.glb",
+			path: "/coffeeLine/green_roasted_2.glb",
 			id: "green-roasted2",
 		},
 		{
 			name: "Зеленый+Жареный3",
-			path: "/green_roasted_3.glb",
+			path: "/coffeeLine/green_roasted_3.glb",
 			id: "green-roasted3",
 		},
 	];
