@@ -45,6 +45,26 @@ services:
       - "traefik.http.routers.app-http.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
+  coffee-line:
+    build:
+      context: ./coffee-line
+      dockerfile: Dockerfile
+    container_name: coffee-line-app
+    restart: always
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.strip-coffee-prefix.stripprefix.prefixes=/coffeeLine"
+      - "traefik.http.routers.coffee-line-secure.rule=Host(`www.assembly3d.ru`) && PathPrefix(`/coffeeLine`)"
+      - "traefik.http.routers.coffee-line-secure.entrypoints=websecure"
+      - "traefik.http.routers.coffee-line-secure.tls.certresolver=myresolver"
+      - "traefik.http.routers.coffee-line-secure.middlewares=strip-coffee-prefix"
+      - "traefik.http.services.coffee-line.loadbalancer.server.port=3001"
+      - "traefik.http.routers.coffee-line-http.rule=Host(`www.assembly3d.ru`) && PathPrefix(`/coffeeLine`)"
+      - "traefik.http.routers.coffee-line-http.entrypoints=web"
+      - "traefik.http.routers.coffee-line-http.middlewares=redirect-to-https,strip-coffee-prefix"
+
 networks:
   web:
     external: false
