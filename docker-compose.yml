@@ -55,15 +55,13 @@ services:
       - web
     labels:
       - "traefik.enable=true"
-      - "traefik.http.middlewares.strip-coffee-prefix.stripprefix.prefixes=/coffeeLine"
       - "traefik.http.routers.coffee-line-secure.rule=Host(`www.assembly3d.ru`) && PathPrefix(`/coffeeLine`)"
       - "traefik.http.routers.coffee-line-secure.entrypoints=websecure"
       - "traefik.http.routers.coffee-line-secure.tls.certresolver=myresolver"
-      - "traefik.http.routers.coffee-line-secure.middlewares=strip-coffee-prefix"
       - "traefik.http.services.coffee-line.loadbalancer.server.port=3001"
       - "traefik.http.routers.coffee-line-http.rule=Host(`www.assembly3d.ru`) && PathPrefix(`/coffeeLine`)"
       - "traefik.http.routers.coffee-line-http.entrypoints=web"
-      - "traefik.http.routers.coffee-line-http.middlewares=redirect-to-https,strip-coffee-prefix"
+      - "traefik.http.routers.coffee-line-http.middlewares=redirect-to-https"
 
 networks:
   web:
